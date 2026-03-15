@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حروف مع حسن - اللاعب</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --green: #22c55e;
+  --orange: #f97316;
+  --bg: #080c10;
+  --surface: #0d1117;
+  --surface2: #111820;
+  --border: #1e2938;
+  --text: #e2e8f0;
+  --muted: #4b5563;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Tajawal', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Scanlines */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ===== JOIN SCREEN ===== */
+#join-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.join-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px;
+  width: 380px;
+  max-width: 95vw;
+}
+
+.join-title {
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--green), var(--orange));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 28px;
+}
+
+.form-group { margin-bottom: 14px; }
+label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 5px; }
+input, select {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 14px;
+  color: var(--text);
+  font-family: 'Tajawal', sans-serif;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, select:focus { border-color: var(--green); }
+select option { background: #111; }
+
+.btn-join {
+  width: 100%;
+  margin-top: 20px;
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-join.green { background: linear-gradient(135deg, var(--green), #16a34a); color: #fff; box-shadow: 0 4px 20px rgba(34,197,94,0.3); }
+.btn-join.orange { background: linear-gradient(135deg, var(--orange), #ea580c); color: #fff; box-shadow: 0 4px 20px rgba(249,115,22,0.3); }
+.btn-join:hover { transform: translateY(-1px); }
+
+#join-error { color: #ef4444; text-align: center; font-size: 0.9rem; min-height: 20px; }
+#join-wait { text-align: center; color: var(--muted); font-size: 0.9rem; display: none; }
+
+/* ===== GAME SCREEN ===== */
+#game-screen {
+  display: none;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* HEADER */
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+
+.header-leader {
+  font-size: 0.85rem;
+  color: var(--green);
+  font-weight: 700;
+  text-align: right;
+  min-width: 120px;
+}
+
+.header-title {
+  font-size: 1.4rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--green), var(--orange));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+}
+
+.header-question {
+  font-size: 0.9rem;
+  color: var(--orange);
+  text-align: left;
+  min-width: 120px;
+  font-weight: 700;
+}
+
+/* MAIN LAYOUT */
+.game-main {
+  display: grid;
+  grid-template-columns: 220px 1fr 220px;
+  gap: 16px;
+  padding: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* TEAM PANELS */
+.team-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.team-name-header {
+  font-size: 1rem;
+  font-weight: 900;
+  text-align: center;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.green-header { color: var(--green); background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); }
+.orange-header { color: var(--orange); background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.2); }
+
+.player-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  transition: all 0.3s;
+}
+
+.player-entry.speaking {
+  box-shadow: 0 0 0 2px var(--green);
+}
+
+.player-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.player-name { font-size: 0.9rem; font-weight: 700; flex: 1; }
+.player-score { font-size: 0.8rem; color: var(--muted); }
+
+/* Player button in team panel */
+.mini-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.mini-btn.green { background: var(--green); color: #fff; box-shadow: 0 2px 8px rgba(34,197,94,0.4); }
+.mini-btn.orange { background: var(--orange); color: #fff; box-shadow: 0 2px 8px rgba(249,115,22,0.4); }
+.mini-btn.locked { background: #2a2a2a; color: #555; cursor: not-allowed; box-shadow: none; }
+.mini-btn.pressed-green { animation: btnFlash 0.5s ease infinite alternate; background: var(--green); }
+.mini-btn.pressed-orange { animation: btnFlash 0.5s ease infinite alternate; background: var(--orange); }
+@keyframes btnFlash { from { opacity: 1; transform: scale(1); } to { opacity: 0.5; transform: scale(0.9); } }
+.mini-btn.expired { background: #ef4444; color: #fff; }
+.mini-btn.other-expired { background: var(--orange); color: #fff; }
+
+/* Leaderboard */
+.leaderboard-section { margin-top: 8px; }
+.lb-title { font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; text-align: center; }
+.lb-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  padding: 4px 0;
+  gap: 6px;
+}
+
+/* TIMEOUT BAR */
+.timeout-bar-wrap { display: none; height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
+.timeout-bar-wrap.active { display: block; }
+.timeout-bar { height: 100%; border-radius: 2px; transition: width 0.1s linear; }
+.timeout-bar.green { background: var(--green); }
+.timeout-bar.orange { background: var(--orange); }
+
+/* HINT VOTE BUTTON */
+.hint-vote-btn {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px dashed #facc15;
+  background: rgba(250,204,21,0.05);
+  color: #facc15;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: none;
+}
+.hint-vote-btn.active { display: block; }
+.hint-vote-btn:hover { background: rgba(250,204,21,0.1); }
+.hint-vote-btn.voted { opacity: 0.5; cursor: default; }
+
+/* CENTER - Grid & button */
+.game-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.hex-grid-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+/* My button */
+.my-button-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.my-button-countdown {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--green);
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 0 20px currentColor;
+}
+
+.my-button {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: none;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.my-button.green {
+  background: radial-gradient(circle at 35% 35%, #4ade80, #16a34a);
+  color: #fff;
+  box-shadow: 0 6px 0 #15803d, 0 8px 20px rgba(34,197,94,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+.my-button.green:active, .my-button.green.pressed {
+  box-shadow: 0 2px 0 #15803d, 0 4px 10px rgba(34,197,94,0.3), inset 0 1px 0 rgba(255,255,255,0.3);
+  transform: translateY(4px);
+}
+.my-button.orange {
+  background: radial-gradient(circle at 35% 35%, #fb923c, #ea580c);
+  color: #fff;
+  box-shadow: 0 6px 0 #c2410c, 0 8px 20px rgba(249,115,22,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+.my-button.orange:active, .my-button.orange.pressed {
+  box-shadow: 0 2px 0 #c2410c, 0 4px 10px rgba(249,115,22,0.3), inset 0 1px 0 rgba(255,255,255,0.3);
+  transform: translateY(4px);
+}
+.my-button.locked {
+  background: #2a2a2a;
+  color: #555;
+  box-shadow: 0 4px 0 #1a1a1a;
+  cursor: not-allowed;
+}
+
+.my-button.flashing-green { animation: myBtnFlash 0.4s ease infinite alternate; }
+.my-button.flashing-orange { animation: myBtnFlashO 0.4s ease infinite alternate; }
+@keyframes myBtnFlash { from { box-shadow: 0 6px 0 #15803d, 0 0 30px rgba(34,197,94,0.6); } to { box-shadow: 0 6px 0 #15803d, 0 0 60px rgba(34,197,94,1); } }
+@keyframes myBtnFlashO { from { box-shadow: 0 6px 0 #c2410c, 0 0 30px rgba(249,115,22,0.6); } to { box-shadow: 0 6px 0 #c2410c, 0 0 60px rgba(249,115,22,1); } }
+
+.my-button-label { font-size: 0.8rem; color: var(--muted); }
+
+/* FULLSCREEN OVERLAY */
+#overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 1000;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+#overlay.active { display: flex; }
+
+.overlay-countdown {
+  font-size: 8rem;
+  font-weight: 900;
+  text-shadow: 0 0 40px currentColor;
+  line-height: 1;
+}
+
+.overlay-player {
+  font-size: 2rem;
+  font-weight: 900;
+  opacity: 0.9;
+}
+
+.overlay-teams {
+  display: flex;
+  gap: 32px;
+  align-items: flex-end;
+}
+
+.overlay-team-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.overlay-mini-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  cursor: default;
+  font-size: 1.2rem;
+}
+
+/* ROUND WIN OVERLAY */
+#win-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  z-index: 2000;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+#win-overlay.active { display: flex; }
+
+.win-emoji { font-size: 5rem; animation: winBounce 0.5s ease infinite alternate; }
+@keyframes winBounce { from { transform: scale(1); } to { transform: scale(1.1); } }
+.win-team { font-size: 2.5rem; font-weight: 900; }
+
+/* Lobby waiting */
+#lobby-wait {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+}
+#lobby-wait.active { display: flex; }
+.lobby-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 768px) {
+  .game-main { grid-template-columns: 1fr; }
+  .team-panel { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- JOIN SCREEN -->
+<div id="join-screen">
+  <div class="join-card">
+    <div class="join-title">حروف مع حسن</div>
+    <div class="form-group">
+      <label>اسمك</label>
+      <input type="text" id="player-name" placeholder="أدخل اسمك" maxlength="20">
+    </div>
+    <div class="form-group">
+      <label>الفريق</label>
+      <select id="team-select">
+        <option value="green">🟢 الفريق الأخضر</option>
+        <option value="orange">🟠 الفريق البرتقالي</option>
+      </select>
+    </div>
+    <div id="join-error"></div>
+    <button class="btn-join green" id="join-btn" onclick="joinGame()">انضم للعبة</button>
+  </div>
+  <div id="join-wait">✅ تم الانضمام، في انتظار بدء الهوست...</div>
+</div>
+
+<!-- LOBBY WAITING -->
+<div id="lobby-wait">
+  <div class="lobby-spinner"></div>
+  <div style="color:var(--muted)">في انتظار بدء اللعبة من الهوست...</div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen">
+  <!-- Header -->
+  <div class="game-header">
+    <div class="header-leader" id="header-leader">-</div>
+    <div class="header-title">حروف مع حسن</div>
+    <div class="header-question" id="header-question">-</div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="game-main">
+    <!-- Green Team -->
+    <div class="team-panel">
+      <div class="team-name-header green-header" id="green-team-name">الفريق الأخضر</div>
+      <div id="green-players"></div>
+      <div class="timeout-bar-wrap" id="green-timeout-wrap">
+        <div class="timeout-bar green" id="green-timeout-bar" style="width:100%"></div>
+      </div>
+      <div class="leaderboard-section">
+        <div class="lb-title">المتصدرون</div>
+        <div id="leaderboard"></div>
+      </div>
+    </div>
+
+    <!-- Center -->
+    <div class="game-center">
+      <div class="hex-grid-container" id="hex-grid"></div>
+
+      <div class="my-button-wrap" id="my-btn-wrap">
+        <div class="my-button-countdown" id="my-countdown"></div>
+        <button class="my-button" id="my-btn" onclick="pressMyButton()">اضغط</button>
+        <div class="my-button-label" id="my-btn-label">انتظر سؤال الهوست</div>
+
+        <!-- Hint vote -->
+        <button class="hint-vote-btn" id="hint-vote-btn" onclick="voteHint()">💡 تصويت للتلميح</button>
+      </div>
+    </div>
+
+    <!-- Orange Team -->
+    <div class="team-panel">
+      <div class="team-name-header orange-header" id="orange-team-name">الفريق البرتقالي</div>
+      <div id="orange-players"></div>
+      <div class="timeout-bar-wrap" id="orange-timeout-wrap">
+        <div class="timeout-bar orange" id="orange-timeout-bar" style="width:100%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FULLSCREEN OVERLAY (when someone presses button) -->
+<div id="overlay">
+  <div class="overlay-countdown" id="overlay-countdown">3</div>
+  <div class="overlay-player" id="overlay-player-name"></div>
+  <div class="overlay-teams" id="overlay-teams"></div>
+</div>
+
+<!-- WIN OVERLAY -->
+<div id="win-overlay">
+  <div class="win-emoji">🎊</div>
+  <div class="win-team" id="win-team-name"></div>
+  <div style="color:var(--muted);font-size:1rem">فاز بالجولة!</div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/game.js"></script>
+<script>
+const socket = io();
+
+let myId = null;
+let myTeam = null;
+let myName = null;
+let gameState = null;
+let overlayTimer = null;
+let hintVoted = false;
+
+// WebRTC
+let localStream = null;
+const peers = {};
+
+async function initMic() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch (e) { console.warn('Mic failed:', e); }
+}
+
+function joinGame() {
+  const name = document.getElementById('player-name').value.trim();
+  const team = document.getElementById('team-select').value;
+  if (!name) { document.getElementById('join-error').textContent = 'أدخل اسمك أولاً'; return; }
+  myName = name;
+  myTeam = team;
+  socket.emit('playerJoin', { name, team });
+}
+
+socket.on('joinOk', async ({ team, name }) => {
+  myId = socket.id;
+  myTeam = team;
+  document.getElementById('join-screen').style.display = 'none';
+  document.getElementById('lobby-wait').classList.add('active');
+  await initMic();
+  const btn = document.getElementById('join-btn');
+  if (btn) { btn.className = 'btn-join ' + team; }
+  document.getElementById('my-btn').className = 'my-button ' + myTeam;
+});
+
+socket.on('joinFail', (msg) => {
+  document.getElementById('join-error').textContent = msg;
+});
+
+socket.on('gameState', (state) => {
+  gameState = state;
+  renderGame(state);
+});
+
+socket.on('buttonPressed', ({ playerId, playerName, team }) => {
+  AudioEngine.playButtonPress();
+  showOverlay(playerId, playerName, team);
+});
+
+socket.on('roundWin', (winner) => {
+  AudioEngine.playWin();
+  showWinOverlay(winner);
+});
+
+socket.on('hintApproved', () => {
+  AudioEngine.playHint();
+});
+
+// ===== RENDER =====
+function renderGame(state) {
+  // Switch screens
+  if (state.phase === 'playing' || state.phase === 'roundEnd') {
+    document.getElementById('lobby-wait').classList.remove('active');
+    document.getElementById('game-screen').style.display = 'flex';
+  }
+
+  // Team names
+  document.getElementById('green-team-name').textContent = state.teamNames.green;
+  document.getElementById('orange-team-name').textContent = state.teamNames.orange;
+
+  // Header
+  const players = Object.entries(state.players);
+  const leaders = players.sort((a,b) => b[1].score - a[1].score);
+  document.getElementById('header-leader').textContent = leaders[0] ? `👑 ${leaders[0][1].name}` : '-';
+  document.getElementById('header-question').textContent = state.currentQuestion ? `السؤال: ${state.currentQuestion}` : '-';
+
+  // Grid
+  buildHexGrid(state.grid, document.getElementById('hex-grid'), 46, null, true, myTeam, state);
+
+  // Players panels
+  renderTeamPanel('green', state);
+  renderTeamPanel('orange', state);
+
+  // Leaderboard
+  document.getElementById('leaderboard').innerHTML = buildLeaderboard(state.players, state.teamNames);
+
+  // My button
+  renderMyButton(state);
+
+  // Timeouts
+  renderTimeouts(state);
+
+  // Hint vote
+  renderHintVote(state);
+
+  // WebRTC mute/deafen
+  applyAudioState(state);
+}
+
+function renderTeamPanel(team, state) {
+  const el = document.getElementById(team + '-players');
+  const teamPlayers = Object.entries(state.players).filter(([,p]) => p.team === team);
+  el.innerHTML = teamPlayers.map(([id, p]) => {
+    const isMe = id === myId;
+    const isMuted = p.muted;
+    const isDeafened = p.deafened;
+    return `
+      <div class="player-entry${isMuted ? '' : ' speaking'}" id="pe-${id}">
+        <div class="player-avatar" style="background:${team === 'green' ? 'rgba(34,197,94,0.2)' : 'rgba(249,115,22,0.2)'};color:${team === 'green' ? 'var(--green)' : 'var(--orange)'}">
+          ${p.name[0]}
+        </div>
+        <div style="flex:1">
+          <div class="player-name">${p.name}${isMe ? ' (أنت)' : ''}</div>
+          <div class="player-score">${p.score} نقاط ${isMuted ? '🔇' : '🎙️'}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderMyButton(state) {
+  const btn = document.getElementById('my-btn');
+  const label = document.getElementById('my-btn-label');
+  const pressed = state.buttonPressedBy;
+
+  if (!state.buttonOpen && !pressed) {
+    btn.className = 'my-button locked';
+    btn.textContent = '🔒';
+    label.textContent = 'انتظر...';
+    return;
+  }
+
+  if (pressed) {
+    if (pressed === myId) {
+      btn.className = `my-button ${myTeam} flashing-${myTeam}`;
+      btn.textContent = '⚡';
+      label.textContent = 'أنت ضغطت!';
+    } else {
+      btn.className = 'my-button locked';
+      btn.textContent = '🔒';
+      label.textContent = gameState?.players[pressed]?.name + ' ضغط';
+    }
+    return;
+  }
+
+  // Check if my team is in timeout
+  const now = Date.now();
+  const inTimeout = myTeam === 'green' ? state.greenTimeoutUntil > now : state.orangeTimeoutUntil > now;
+
+  if (inTimeout || (gameState?.players[myId]?.muted)) {
+    btn.className = 'my-button locked';
+    btn.textContent = '⏱️';
+    label.textContent = 'تايم أوت';
+    return;
+  }
+
+  btn.className = `my-button ${myTeam}`;
+  btn.textContent = 'اضغط';
+  label.textContent = 'الزر مفتوح!';
+}
+
+function renderTimeouts(state) {
+  const now = Date.now();
+  ['green','orange'].forEach(team => {
+    const until = state[team + 'TimeoutUntil'];
+    const wrap = document.getElementById(team + '-timeout-wrap');
+    const bar = document.getElementById(team + '-timeout-bar');
+    if (until > now) {
+      wrap.classList.add('active');
+      const pct = ((until - now) / 10000) * 100;
+      bar.style.width = pct + '%';
+    } else {
+      wrap.classList.remove('active');
+    }
+  });
+}
+
+function renderHintVote(state) {
+  const btn = document.getElementById('hint-vote-btn');
+  if (state.hintActive && !state.hintUnlocked) {
+    btn.classList.add('active');
+    const myVote = state.hintVotes && state.hintVotes[myId];
+    btn.textContent = myVote ? '✅ صوّتت للتلميح' : '💡 تصويت للتلميح';
+    btn.disabled = !!myVote;
+    if (myVote) btn.classList.add('voted');
+  } else {
+    btn.classList.remove('active');
+    btn.classList.remove('voted');
+    hintVoted = false;
+  }
+}
+
+function pressMyButton() {
+  if (!gameState?.buttonOpen || gameState.buttonPressedBy) return;
+  AudioEngine.resume();
+  socket.emit('pressButton');
+}
+
+function voteHint() {
+  if (hintVoted) return;
+  hintVoted = true;
+  socket.emit('voteHint');
+}
+
+// Overlay
+function showOverlay(pressedId, playerName, team) {
+  const overlay = document.getElementById('overlay');
+  const countdownEl = document.getElementById('overlay-countdown');
+  const playerEl = document.getElementById('overlay-player-name');
+  const teamsEl = document.getElementById('overlay-teams');
+
+  overlay.classList.add('active');
+  countdownEl.style.color = team === 'green' ? 'var(--green)' : 'var(--orange)';
+  playerEl.textContent = playerName;
+  playerEl.style.color = team === 'green' ? 'var(--green)' : 'var(--orange)';
+
+  // Build overlay teams view
+  if (gameState) {
+    const greenPs = Object.entries(gameState.players).filter(([,p]) => p.team === 'green');
+    const orangePs = Object.entries(gameState.players).filter(([,p]) => p.team === 'orange');
+    teamsEl.innerHTML = `
+      <div class="overlay-team-col">
+        <div style="color:var(--green);font-size:0.8rem;margin-bottom:4px">${gameState.teamNames.green}</div>
+        ${greenPs.map(([id,p]) => `
+          <button class="overlay-mini-btn" style="background:${id===pressedId?'var(--green)':'#2a2a2a'};color:${id===pressedId?'#fff':'#555'}">
+            ${p.name[0]}
+          </button>
+        `).join('')}
+      </div>
+      <div style="font-size:2rem;align-self:center;color:var(--muted)">VS</div>
+      <div class="overlay-team-col">
+        <div style="color:var(--orange);font-size:0.8rem;margin-bottom:4px">${gameState.teamNames.orange}</div>
+        ${orangePs.map(([id,p]) => `
+          <button class="overlay-mini-btn" style="background:${id===pressedId?'var(--orange)':'#2a2a2a'};color:${id===pressedId?'#fff':'#555'}">
+            ${p.name[0]}
+          </button>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  let count = 3;
+  countdownEl.textContent = count;
+  if (overlayTimer) clearInterval(overlayTimer);
+  overlayTimer = setInterval(() => {
+    count--;
+    if (count <= 0) {
+      clearInterval(overlayTimer);
+      AudioEngine.playExpire();
+      countdownEl.textContent = '⌛';
+      setTimeout(() => overlay.classList.remove('active'), 1500);
+    } else {
+      AudioEngine.playTick();
+      countdownEl.textContent = count;
+    }
+  }, 1000);
+}
+
+function showWinOverlay(winner) {
+  const ov = document.getElementById('win-overlay');
+  const el = document.getElementById('win-team-name');
+  ov.classList.add('active');
+  el.textContent = gameState?.teamNames[winner] || (winner === 'green' ? 'الفريق الأخضر' : 'الفريق البرتقالي');
+  el.style.color = winner === 'green' ? 'var(--green)' : 'var(--orange)';
+}
+
+// Audio state
+function applyAudioState(state) {
+  const me = state.players[myId];
+  if (!me || !localStream) return;
+  localStream.getAudioTracks().forEach(t => { t.enabled = !me.muted; });
+  // Deafen: mute remote audio
+  Object.entries(peers).forEach(([id, peer]) => {
+    const remoteAudio = document.getElementById('audio-' + id);
+    if (remoteAudio) remoteAudio.muted = !!me.deafened;
+  });
+}
+
+// Interval to update timeout bars
+setInterval(() => {
+  if (gameState) renderTimeouts(gameState);
+}, 100);
+
+// WebRTC setup
+socket.on('connect', () => { myId = socket.id; });
+socket.on('webrtc-offer', async ({ from, offer }) => {
+  if (!localStream) return;
+  const pc = createPeer(from);
+  await pc.setRemoteDescription(offer);
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  socket.emit('webrtc-answer', { to: from, answer });
+});
+socket.on('webrtc-answer', async ({ from, answer }) => {
+  await peers[from]?.setRemoteDescription(answer);
+});
+socket.on('webrtc-ice', ({ from, candidate }) => {
+  peers[from]?.addIceCandidate(candidate);
+});
+
+function createPeer(id) {
+  if (peers[id]) { peers[id].close(); }
+  const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+  peers[id] = pc;
+  if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  pc.onicecandidate = e => { if (e.candidate) socket.emit('webrtc-ice', { to: id, candidate: e.candidate }); };
+  pc.ontrack = e => {
+    let audio = document.getElementById('audio-' + id);
+    if (!audio) {
+      audio = document.createElement('audio');
+      audio.id = 'audio-' + id;
+      audio.autoplay = true;
+      document.body.appendChild(audio);
+    }
+    audio.srcObject = e.streams[0];
+  };
+  return pc;
+}
+
+async function startPeerConnections() {
+  if (!gameState || !localStream) return;
+  for (const [id] of Object.entries(gameState.players)) {
+    if (id !== myId && !peers[id]) {
+      const pc = createPeer(id);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socket.emit('webrtc-offer', { to: id, offer });
+    }
+  }
+}
+
+socket.on('gameState', (state) => {
+  // Try to connect to new players
+  setTimeout(startPeerConnections, 500);
+});
+</script>
+</body>
+</html>

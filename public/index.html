@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حروف مع حسن</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=Tajawal:wght@400;700;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #22c55e;
+    --orange: #f97316;
+    --bg: #080c10;
+    --surface: #0d1117;
+    --border: #1e2938;
+    --text: #e2e8f0;
+    --muted: #4b5563;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Tajawal', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Scanlines overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  .login-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 48px 40px;
+    width: 400px;
+    max-width: 95vw;
+    position: relative;
+    box-shadow: 0 0 60px rgba(34,197,94,0.08), 0 0 120px rgba(249,115,22,0.04);
+  }
+
+  .game-title {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--green), var(--orange));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .game-subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 36px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'Tajawal', sans-serif;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus {
+    border-color: var(--green);
+  }
+
+  .btn-login {
+    width: 100%;
+    margin-top: 24px;
+    padding: 14px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--green), #16a34a);
+    color: #fff;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(34,197,94,0.3);
+  }
+
+  .btn-login:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 28px rgba(34,197,94,0.4);
+  }
+
+  .btn-login.escaping {
+    position: fixed;
+    width: 52px !important;
+    height: 52px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    font-size: 0.7rem !important;
+    transition: left 0.12s ease-out, top 0.12s ease-out;
+    animation: runSpin 0.4s linear infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .btn-login.caught {
+    position: fixed;
+    width: 52px !important;
+    height: 52px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    font-size: 0.7rem !important;
+    animation: none !important;
+    transform: scale(1.15);
+    box-shadow: 0 0 0 4px rgba(34,197,94,0.5), 0 6px 28px rgba(34,197,94,0.5) !important;
+    transition: transform 0.15s, box-shadow 0.15s;
+    z-index: 9999;
+  }
+
+  .btn-login.spinning {
+    animation: runSpin 0.8s linear infinite;
+    opacity: 0.7;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes runSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* TTY Terminal */
+  #tty-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 1000;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: #00ff41;
+    padding: 40px;
+    overflow: hidden;
+    flex-direction: column;
+  }
+
+  #tty-screen.active {
+    display: flex;
+  }
+
+  #tty-output {
+    flex: 1;
+    overflow: hidden;
+    white-space: pre-wrap;
+  }
+
+  #tty-output .line {
+    margin: 0;
+    line-height: 1.6;
+    animation: tty-appear 0.05s ease;
+  }
+
+  @keyframes tty-appear {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  #tty-input-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  #tty-prompt {
+    color: #00ff41;
+    white-space: nowrap;
+  }
+
+  #tty-input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    flex: 1;
+    caret-color: #00ff41;
+  }
+
+  .cursor-blink {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    background: #00ff41;
+    animation: blink 1s step-end infinite;
+    vertical-align: middle;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .tty-error { color: #ff4444; }
+  .tty-success { color: #00ff41; }
+  .tty-dim { color: #006620; }
+</style>
+</head>
+<body>
+
+<div class="login-container" id="login-box">
+  <div class="game-title">حروف مع حسن</div>
+  <div class="game-subtitle">سجّل دخولك للمتابعة</div>
+
+  <div class="form-group">
+    <label>البريد الإلكتروني</label>
+    <input type="email" id="email" placeholder="example@email.com" autocomplete="off">
+  </div>
+  <div class="form-group">
+    <label>كلمة المرور</label>
+    <input type="password" id="password" placeholder="••••••••">
+  </div>
+
+  <button class="btn-login" id="login-btn">دخول</button>
+</div>
+
+<!-- TTY Screen -->
+<div id="tty-screen">
+  <div id="tty-output"></div>
+  <div id="tty-input-line" style="display:none">
+    <span id="tty-prompt">root@7oroof:~# </span>
+    <input type="text" id="tty-input" autocomplete="off" autocorrect="off" spellcheck="false">
+    <span class="cursor-blink"></span>
+  </div>
+</div>
+
+<script>
+const btn = document.getElementById('login-btn');
+let clickCount = 0;
+let escaping = false;
+let caught = false;
+
+let lastMouseX = 0, lastMouseY = 0, lastMouseTime = Date.now();
+
+function runAway(fromX, fromY) {
+  if (caught) return;
+  escaping = true;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const rect = btn.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+
+  // Direction away from mouse
+  let dx = cx - fromX, dy = cy - fromY;
+  const len = Math.sqrt(dx*dx + dy*dy) || 1;
+  dx = dx/len; dy = dy/len;
+
+  const dist = 180 + Math.random() * 120;
+  let newX = cx + dx * dist - 26;
+  let newY = cy + dy * dist - 26;
+  newX = Math.max(10, Math.min(vw - 62, newX));
+  newY = Math.max(10, Math.min(vh - 62, newY));
+
+  btn.classList.remove('caught');
+  btn.classList.add('escaping');
+  btn.textContent = '👋';
+  btn.style.left = newX + 'px';
+  btn.style.top = newY + 'px';
+
+  setTimeout(() => { escaping = false; }, 350);
+}
+
+document.addEventListener('mousemove', (e) => {
+  const now = Date.now();
+  const dx = e.clientX - lastMouseX;
+  const dy = e.clientY - lastMouseY;
+  const dt = Math.max(now - lastMouseTime, 1);
+  const speed = Math.sqrt(dx*dx + dy*dy) / dt;
+
+  if (clickCount === 0 && btn.classList.contains('escaping') && !caught && speed > 1.8) {
+    // Fast mouse = catch it!
+    caught = true;
+    btn.classList.remove('escaping');
+    btn.classList.add('caught');
+    btn.textContent = '😵';
+    btn.style.left = Math.max(10, Math.min(window.innerWidth - 62, e.clientX - 26)) + 'px';
+    btn.style.top = Math.max(10, Math.min(window.innerHeight - 62, e.clientY - 26)) + 'px';
+  }
+
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+  lastMouseTime = now;
+});
+
+btn.addEventListener('mouseenter', () => {
+  if (clickCount === 0 && !caught) {
+    const rect = btn.getBoundingClientRect();
+    runAway(lastMouseX, lastMouseY);
+  }
+});
+
+btn.addEventListener('click', () => {
+  clickCount++;
+
+  if (clickCount === 1) {
+    caught = false;
+    btn.classList.remove('escaping', 'caught');
+    btn.style.left = '';
+    btn.style.top = '';
+    btn.style.position = '';
+    btn.classList.add('spinning');
+    btn.textContent = '⟳';
+    setTimeout(() => {
+      btn.classList.remove('spinning');
+      btn.textContent = 'دخول';
+      clickCount = 0;
+    }, 1500);
+    return;
+  }
+
+  if (clickCount >= 2) {
+    startTTY();
+  }
+});
+
+// ===== TTY =====
+const ttyScreen = document.getElementById('tty-screen');
+const ttyOutput = document.getElementById('tty-output');
+const ttyInputLine = document.getElementById('tty-input-line');
+const ttyInput = document.getElementById('tty-input');
+
+const ttyLines = [
+  {text: 'Linux hassan-server 5.15.0-91-generic #101-Ubuntu', delay: 0},
+  {text: 'حروف مع حسن - نظام التحقق v2.4.1', delay: 200},
+  {text: '', delay: 400},
+  {text: '[  0.000000] Initializing security subsystem...', delay: 600, cls: 'tty-dim'},
+  {text: '[  0.123456] Loading game modules...', delay: 900, cls: 'tty-dim'},
+  {text: '[  0.234567] hexagonal_grid: OK', delay: 1200, cls: 'tty-dim'},
+  {text: '[  0.345678] arabic_letters: 27 chars loaded', delay: 1400, cls: 'tty-dim'},
+  {text: '[  0.456789] websocket_server: binding port 3000', delay: 1600, cls: 'tty-dim'},
+  {text: '[  0.567890] webrtc_engine: initialized', delay: 1800, cls: 'tty-dim'},
+  {text: '[  0.678901] Authentication gateway: ACTIVE', delay: 2000, cls: 'tty-dim'},
+  {text: '', delay: 2200},
+  {text: 'System boot complete.', delay: 2400},
+  {text: '', delay: 2500},
+  {text: '╔══════════════════════════════════════╗', delay: 2700},
+  {text: '║     IDENTITY VERIFICATION REQUIRED    ║', delay: 2900},
+  {text: '╚══════════════════════════════════════╝', delay: 3100},
+  {text: '', delay: 3300},
+  {text: '> من صنع هذا الموقع؟', delay: 3600},
+];
+
+function addLine(text, cls = '') {
+  const div = document.createElement('div');
+  div.className = 'line' + (cls ? ' ' + cls : '');
+  div.textContent = text || '\u00a0';
+  ttyOutput.appendChild(div);
+  ttyOutput.scrollTop = ttyOutput.scrollHeight;
+}
+
+function startTTY() {
+  ttyScreen.classList.add('active');
+  clickCount = 0;
+
+  ttyLines.forEach(({ text, delay, cls }) => {
+    setTimeout(() => addLine(text, cls), delay);
+  });
+
+  setTimeout(() => {
+    ttyInputLine.style.display = 'flex';
+    ttyInput.focus();
+  }, 3800);
+}
+
+ttyInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const val = ttyInput.value.trim();
+    addLine('root@7oroof:~# ' + val);
+    ttyInput.value = '';
+    ttyInputLine.style.display = 'none';
+
+    if (val === '7snn') {
+      setTimeout(() => {
+        addLine('');
+        addLine('> تحقق الهوية... ✓', 'tty-success');
+        addLine('> وصول مرحّب به يا حسن!', 'tty-success');
+        addLine('> تحميل الجلسة...', 'tty-success');
+      }, 200);
+      setTimeout(() => {
+        window.location.href = '/game.html';
+      }, 2000);
+    } else {
+      setTimeout(() => {
+        addLine('');
+        addLine('> خطأ: الهوية غير معروفة', 'tty-error');
+        addLine('> يتم إعادة التوجيه...', 'tty-error');
+      }, 200);
+      setTimeout(() => {
+        ttyScreen.classList.remove('active');
+        window.location.reload();
+      }, 2000);
+    }
+  }
+});
+</script>
+</body>
+</html>
