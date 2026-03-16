@@ -21,22 +21,28 @@ function generateQuestionsAI(letter, category = 'عشوائي', difficulty = 'م
     if (questionCache[cacheKey]) { resolve(questionCache[cacheKey]); return; }
 
     const arg = JSON.stringify({ letter, category, difficulty, count });
-    const py = spawn('python3', [path.join(__dirname, 'question_generator.py'), arg]);
-    let out = '';
+    // نمرر الـ API Key صراحةً للـ Python عشان ما يضيع في child process
+    const pyEnv = { ...process.env, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '' };
+    const py = spawn('python3', [path.join(__dirname, 'question_generator.py'), arg], { env: pyEnv });
+    let out = '', err = '';
     py.stdout.on('data', d => out += d);
-    py.on('close', () => {
+    py.stderr.on('data', d => err += d);
+    py.on('close', (code) => {
+      if (err) console.error('Python error:', err.slice(0, 300));
       try {
         const questions = JSON.parse(out.trim());
         questionCache[cacheKey] = questions;
         resolve(questions);
       } catch {
+        console.error('Parse error, out was:', out.slice(0, 200));
         resolve([{ text: `اذكر كلمة تبدأ بـ ${letter}`, answer: '—', hint: '—', category: 'عام', difficulty: 'سهل' }]);
       }
     });
-    py.on('error', () => {
+    py.on('error', (e) => {
+      console.error('Spawn error:', e.message);
       resolve([{ text: `اذكر كلمة تبدأ بـ ${letter}`, answer: '—', hint: '—', category: 'عام', difficulty: 'سهل' }]);
     });
-    setTimeout(() => { py.kill(); resolve([{ text: `اذكر كلمة تبدأ بـ ${letter}`, answer: '—', hint: '—', category: 'عام', difficulty: 'سهل' }]); }, 15000);
+    setTimeout(() => { py.kill(); resolve([{ text: `اذكر كلمة تبدأ بـ ${letter}`, answer: '—', hint: '—', category: 'عام', difficulty: 'سهل' }]); }, 20000);
   });
 }
 
@@ -418,14 +424,17 @@ async function preGenerateAllLetters(hostSocketId) {
   // Batch mode: spawn Python ONCE with all letters
   const arg = JSON.stringify({ letters, category: cat, difficulty: diff, count: 3 });
   const result = await new Promise((resolve) => {
-    const py = spawn('python3', [path.join(__dirname, 'question_generator.py'), arg]);
-    let out = '';
+    const pyEnv2 = { ...process.env, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '' };
+    const py = spawn('python3', [path.join(__dirname, 'question_generator.py'), arg], { env: pyEnv2 });
+    let out = '', err2 = '';
     py.stdout.on('data', d => out += d);
+    py.stderr.on('data', d => err2 += d);
     py.on('close', () => {
+      if (err2) console.error('PreGen Python error:', err2.slice(0,300));
       try { resolve(JSON.parse(out.trim())); }
-      catch { resolve({}); }
+      catch { console.error('PreGen parse error:', out.slice(0,200)); resolve({}); }
     });
-    py.on('error', () => resolve({}));
+    py.on('error', (e) => { console.error('PreGen spawn error:', e.message); resolve({}); });
     // Progress: emit fake progress every ~2s while waiting
     let fakeProgress = 0;
     const progressInterval = setInterval(() => {
@@ -715,4 +724,7 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Server on port ${PORT}`);
+  console.log(`ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? '✅ موجود (' + process.env.ANTHROPIC_API_KEY.slice(0,12) + '...)' : '❌ غير موجود — AI سيستخدم الـ fallback'}`);
+});
