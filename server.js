@@ -2,7 +2,6 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const { spawn } = require('child_process');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,404 +10,120 @@ const io = new Server(server, { cors: { origin: '*' } });
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public', 'host.html')));
 
-// ── AI Question Generator ─────────────────────────────────────────────────
-// Cache: letter -> [questions]  (reset each new round)
+// ── AI Question Generator (Node.js fetch — no Python needed) ────────────────
 const questionCache = {};
 
-function generateQuestionsAI(letter, category = 'عشوائي', difficulty = 'متوسط', count = 3) {
-  return new Promise((resolve) => {
-    const cacheKey = `${letter}-${category}-${difficulty}`;
-    if (questionCache[cacheKey]) { resolve(questionCache[cacheKey]); return; }
+const LETTER_EXAMPLES = {
+  'أ':'أسد، أرجنتين، أبوظبي، أحمد، أرسنال',
+  'ب':'برشلونة، بيليه، بغداد، باريس، بنزيمة',
+  'ت':'تونس، تركيا، تشيلسي، توتنهام',
+  'ث':'ثعلب، ثعبان، ثروت',
+  'ج':'جدة، جنوب أفريقيا، جوارديولا، جمل',
+  'ح':'حصان، حمدان، حضرموت، حمص',
+  'خ':'خيول، خالد، خوان كارلوس',
+  'د':'دبي، دوري أبطال، دانمارك',
+  'ذ':'ذئب، ذهب، ذرة',
+  'ر':'رونالدو، ريال مدريد، الرياض',
+  'ز':'زيدان، زرافة، زلزال',
+  'س':'سلمى، سنغافورة، سلاحف',
+  'ش':'شيكاغو، شيرازي، شيتا',
+  'ص':'صقر، صلاح، الصين',
+  'ض':'ضفدع، ضباب، ضمد',
+  'ط':'طائرة، طنجة، طوكيو',
+  'ظ':'ظبي، ظفار، ظاهرة طبيعية',
+  'ع':'عقاب، عمان، عصام',
+  'غ':'غانا، غزال، غرناطة',
+  'ف':'فرنسا، فهد، فلامنغو',
+  'ق':'قطر، قاهرة، قطيف',
+  'ك':'كرواتيا، كيليان مبابي، كلب',
+  'ل':'لبنان، ليفربول، لوبيز',
+  'م':'مدريد، محمد، ميسي، مكة',
+  'ن':'نيمار، نيجيريا، نمر',
+  'ه':'هولندا، هاري كين، هدهد',
+  'و':'وليد، وهران، ورد',
+};
 
-    const arg = JSON.stringify({ letter, category, difficulty, count });
-    // نمرر الـ API Key صراحةً للـ Python عشان ما يضيع في child process
-    const pyEnv = { ...process.env, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '' };
-    const py = spawn('python3', [path.join(__dirname, 'question_generator.py'), arg], { env: pyEnv });
-    let out = '', err = '';
-    py.stdout.on('data', d => out += d);
-    py.stderr.on('data', d => err += d);
-    py.on('close', (code) => {
-      if (err) console.error('Python error:', err.slice(0, 300));
-      try {
-        const questions = JSON.parse(out.trim());
-        questionCache[cacheKey] = questions;
-        resolve(questions);
-      } catch {
-        console.error('Parse error, out was:', out.slice(0, 200));
-        resolve([{ text: `اذكر كلمة تبدأ بـ ${letter}`, answer: '—', hint: '—', category: 'عام', difficulty: 'سهل' }]);
+const CAT_DESC  = {'كروي':'كرة القدم: لاعبون، أندية، مدربون، بطولات','ديني':'إسلامية: أنبياء، صحابة، سور، أحداث','علوم':'طبيعية: حيوانات، نباتات، ظواهر','جغرافيا':'جغرافيا: دول، مدن، جبال، أنهار','علمي':'علم وتقنية: علماء، اختراعات، مصطلحات','ثقافي':'ثقافة عامة: شخصيات، أحداث، فنون','عشوائي':'متنوع من جميع المجالات'};
+const DIFF_DESC = {'سهل':'مشهورة جداً يعرفها الجميع','متوسط':'معروفة نسبياً','صعب':'نادرة تحتاج معرفة عميقة'};
+
+function makeFallback(letter, count) {
+  const ex = (LETTER_EXAMPLES[letter] || letter+'...').split('،').map(s=>s.trim());
+  return [
+    {text:`اذكر شخصاً مشهوراً اسمه يبدأ بـ«${letter}»`, answer:ex[0]||letter+'...', hint:'شخصية رياضية أو تاريخية', category:'ثقافي', difficulty:'سهل'},
+    {text:`اذكر دولة أو مدينة تبدأ بـ«${letter}»`,       answer:ex[1]||letter+'...', hint:'موقع جغرافي على الخريطة', category:'جغرافيا', difficulty:'سهل'},
+    {text:`اذكر حيواناً يبدأ بـ«${letter}»`,             answer:ex[2]||letter+'...', hint:'كائن حي من الطبيعة',       category:'علوم', difficulty:'سهل'},
+  ].slice(0, count);
+}
+
+async function generateQuestionsAI(letter, category = 'عشوائي', difficulty = 'متوسط', count = 3) {
+  const cacheKey = `${letter}-${category}-${difficulty}`;
+  if (questionCache[cacheKey]) return questionCache[cacheKey];
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return makeFallback(letter, count);
+
+  const ex       = LETTER_EXAMPLES[letter] || letter+'...';
+  const catDesc  = CAT_DESC[category]  || 'متنوع';
+  const diffDesc = DIFF_DESC[difficulty] || 'معروفة';
+
+  const prompt = `اصنع ${count} أسئلة لحرف «${letter}».
+التصنيف: ${category} (${catDesc})
+الصعوبة: ${difficulty} (إجابات ${diffDesc})
+أمثلة إجابات صحيحة لهذا الحرف: ${ex}
+
+قواعد صارمة:
+1. الإجابة (answer) تبدأ حصرياً بحرف «${letter}» — لا استثناءات.
+2. السؤال (text) محدد ومباشر مثل: "نجم كرة قدم برازيلي مشهور" وليس "اذكر كلمة".
+3. التلميح (hint) لا يحتوي على الإجابة.
+4. الإخراج: مصفوفة JSON فقط بدون أي نص خارجها وبدون markdown.
+
+[{"text":"...","answer":"...","hint":"...","category":"${category}","difficulty":"${difficulty}"}]`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1500,
+        temperature: 0.85,
+        system: 'أنت مولّد أسئلة لعبة عربية. أرجع JSON فقط بدون أي نص آخر.',
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    const data = await res.json();
+    let raw = data?.content?.[0]?.text?.trim() || '';
+
+    // Strip markdown fences if any
+    if (raw.includes('```')) {
+      for (const part of raw.split('```')) {
+        const p = part.replace(/^json/, '').trim();
+        if (p.startsWith('[')) { raw = p; break; }
       }
-    });
-    py.on('error', (e) => {
-      console.error('Spawn error:', e.message);
-      resolve([{ text: `اذكر كلمة تبدأ بـ ${letter}`, answer: '—', hint: '—', category: 'عام', difficulty: 'سهل' }]);
-    });
-    setTimeout(() => { py.kill(); resolve([{ text: `اذكر كلمة تبدأ بـ ${letter}`, answer: '—', hint: '—', category: 'عام', difficulty: 'سهل' }]); }, 20000);
-  });
+    }
+
+    const questions = JSON.parse(raw);
+    if (Array.isArray(questions) && questions.length) {
+      const valid = questions.filter(q => q?.answer?.trim().startsWith(letter));
+      const result = (valid.length ? valid : questions).slice(0, count);
+      questionCache[cacheKey] = result;
+      return result;
+    }
+  } catch (e) {
+    console.error('AI generate error:', e.message);
+  }
+
+  return makeFallback(letter, count);
 }
 
 function clearQuestionCache() { Object.keys(questionCache).forEach(k => delete questionCache[k]); }
 
-// ===== CONSTANTS =====
-const ARABIC_LETTERS = ['أ','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و'];
-const HOST_CODE          = process.env.HOST_CODE || 'Tty3201';
-const BUTTON_ANSWER_TIME = 5000;
-const TEAM_TIMEOUT_MS    = 10000;
-const HINT_AFTER_MS      = 30000;
-const CANCEL_VOTE_AFTER  = 2 * 60 * 1000;
-const QUESTION_EXPIRE    = 5 * 60 * 1000;
-
-// ===== QUESTIONS DB =====
-const QUESTIONS_DB = {
-  'أ': [
-    { text: 'اذكر حيواناً يبدأ بحرف الألف', hint: 'يعيش في الغابة ولديه خرطوم', category: 'علوم', difficulty: 'سهل' },
-    { text: 'اذكر عاصمة دولة تبدأ بالألف', hint: 'في قارة أفريقيا', category: 'جغرافيا', difficulty: 'متوسط' },
-    { text: 'اذكر لاعب كرة قدم اسمه يبدأ بالألف', hint: 'لاعب أرجنتيني مشهور', category: 'كروي', difficulty: 'سهل' },
-  ],
-  'ب': [
-    { text: 'اذكر لاعب كرة مشهور اسمه يبدأ بالباء', hint: 'لعب في برشلونة وريال مدريد', category: 'كروي', difficulty: 'سهل' },
-    { text: 'اذكر نبياً اسمه يبدأ بالباء', hint: 'من أنبياء بني إسرائيل', category: 'ديني', difficulty: 'متوسط' },
-    { text: 'اذكر مدينة سعودية تبدأ بالباء', hint: 'على البحر الأحمر', category: 'جغرافيا', difficulty: 'سهل' },
-  ],
-  'ت': [
-    { text: 'اذكر مدينة سعودية تبدأ بالتاء', hint: 'في المنطقة الغربية', category: 'جغرافيا', difficulty: 'سهل' },
-    { text: 'اذكر تقنية حديثة تبدأ بالتاء', hint: 'يستخدمها الهاتف الذكي', category: 'علمي', difficulty: 'متوسط' },
-  ],
-  'ث': [
-    { text: 'اذكر فاكهة تبدأ بالثاء', hint: 'حلوة جداً وحمراء', category: 'علوم', difficulty: 'سهل' },
-  ],
-  'ج': [
-    { text: 'اذكر دولة تبدأ بالجيم', hint: 'في جنوب شرق آسيا', category: 'جغرافيا', difficulty: 'متوسط' },
-    { text: 'اذكر صحابياً جليلاً اسمه يبدأ بالجيم', hint: 'من العشرة المبشرين بالجنة', category: 'ديني', difficulty: 'متوسط' },
-  ],
-  'ح': [
-    { text: 'اذكر صحابياً جليلاً اسمه يبدأ بالحاء', hint: 'من العشرة المبشرين بالجنة', category: 'ديني', difficulty: 'متوسط' },
-    { text: 'اذكر حيواناً بحرياً يبدأ بالحاء', hint: 'يتميز برأسه الكبير', category: 'علوم', difficulty: 'سهل' },
-  ],
-  'خ': [
-    { text: 'اذكر رياضة تبدأ بالخاء', hint: 'فنون قتالية آسيوية', category: 'كروي', difficulty: 'سهل' },
-    { text: 'اذكر خليفة راشدياً يبدأ اسمه بالخاء', hint: 'رابع الخلفاء الراشدين', category: 'ديني', difficulty: 'سهل' },
-  ],
-  'د': [
-    { text: 'اذكر دولة عربية تبدأ بالدال', hint: 'في الخليج العربي', category: 'جغرافيا', difficulty: 'سهل' },
-    { text: 'اذكر عالماً مسلماً مشهوراً يبدأ اسمه بالدال', hint: 'في علم الرياضيات', category: 'علمي', difficulty: 'صعب' },
-  ],
-  'ذ': [
-    { text: 'اذكر نبياً اسمه يبدأ بالذال', hint: 'صاحب الحوت', category: 'ديني', difficulty: 'سهل' },
-  ],
-  'ر': [
-    { text: 'اذكر لاعب كرة قدم اسمه يبدأ بالراء', hint: 'البرتغالي الشهير', category: 'كروي', difficulty: 'سهل' },
-    { text: 'اذكر نهراً عالمياً يبدأ بالراء', hint: 'يمر بأوروبا', category: 'جغرافيا', difficulty: 'متوسط' },
-  ],
-  'ز': [
-    { text: 'اذكر نبياً اسمه يبدأ بالزاي', hint: 'نبي الله زكريا عليه السلام', category: 'ديني', difficulty: 'سهل' },
-    { text: 'اذكر زهرة أو نبتة تبدأ بالزاي', hint: 'تستخدم في الطبخ', category: 'علوم', difficulty: 'متوسط' },
-  ],
-  'س': [
-    { text: 'اذكر مدينة سعودية تبدأ بالسين', hint: 'على ساحل البحر الأحمر', category: 'جغرافيا', difficulty: 'سهل' },
-    { text: 'اذكر عالماً مشهوراً يبدأ اسمه بالسين', hint: 'اكتشف قانوناً في الفيزياء', category: 'علمي', difficulty: 'صعب' },
-  ],
-  'ش': [
-    { text: 'اذكر شجرة اسمها يبدأ بالشين', hint: 'معروفة بثمرها الحلو', category: 'علوم', difficulty: 'سهل' },
-    { text: 'اذكر شخصية إسلامية تبدأ بالشين', hint: 'إمام من الأئمة الأربعة', category: 'ديني', difficulty: 'متوسط' },
-  ],
-  'ص': [
-    { text: 'اذكر صحابياً اسمه يبدأ بالصاد', hint: 'أول من أسلم من الرجال', category: 'ديني', difficulty: 'سهل' },
-  ],
-  'ض': [
-    { text: 'اذكر دولة تبدأ بالضاد', hint: 'في أفريقيا', category: 'جغرافيا', difficulty: 'صعب' },
-  ],
-  'ط': [
-    { text: 'اذكر طائراً اسمه يبدأ بالطاء', hint: 'يطير عالياً جداً', category: 'علوم', difficulty: 'سهل' },
-    { text: 'اذكر اختراعاً علمياً يبدأ بالطاء', hint: 'يستخدم في المستشفيات', category: 'علمي', difficulty: 'متوسط' },
-  ],
-  'ظ': [
-    { text: 'اذكر ظاهرة طبيعية تبدأ بالظاء', hint: 'تحدث في السماء عند المطر', category: 'علوم', difficulty: 'متوسط' },
-  ],
-  'ع': [
-    { text: 'اذكر عاصمة عربية تبدأ بالعين', hint: 'في شمال أفريقيا', category: 'جغرافيا', difficulty: 'سهل' },
-    { text: 'اذكر صحابياً اسمه يبدأ بالعين', hint: 'ثالث الخلفاء الراشدين', category: 'ديني', difficulty: 'سهل' },
-  ],
-  'غ': [
-    { text: 'اذكر دولة تبدأ بالغين', hint: 'في غرب أفريقيا', category: 'جغرافيا', difficulty: 'صعب' },
-  ],
-  'ف': [
-    { text: 'اذكر لاعباً مشهوراً اسمه يبدأ بالفاء', hint: 'نجم كروي فرنسي', category: 'كروي', difficulty: 'متوسط' },
-    { text: 'اذكر فيلسوفاً مسلماً اسمه يبدأ بالفاء', hint: 'يلقب بالمعلم الثاني', category: 'علمي', difficulty: 'صعب' },
-  ],
-  'ق': [
-    { text: 'اذكر قارة تبدأ بالقاف', hint: 'القطب الجنوبي', category: 'جغرافيا', difficulty: 'سهل' },
-    { text: 'اذكر قصة قرآنية تبدأ بالقاف', hint: 'قصة نبي وقومه', category: 'ديني', difficulty: 'متوسط' },
-  ],
-  'ك': [
-    { text: 'اذكر كوكباً يبدأ بالكاف', hint: 'له حلقات مميزة', category: 'علمي', difficulty: 'سهل' },
-    { text: 'اذكر كأس كروية تبدأ بالكاف', hint: 'أوروبية مشهورة', category: 'كروي', difficulty: 'متوسط' },
-  ],
-  'ل': [
-    { text: 'اذكر لاعب كرة قدم اسمه يبدأ باللام', hint: 'نجم فرنسي في ريال مدريد', category: 'كروي', difficulty: 'سهل' },
-    { text: 'اذكر لغة تبدأ باللام', hint: 'لغة أوروبية لاتينية الأصل', category: 'علمي', difficulty: 'متوسط' },
-  ],
-  'م': [
-    { text: 'اذكر مدينة عالمية تبدأ بالميم', hint: 'عاصمة دولة أوروبية', category: 'جغرافيا', difficulty: 'سهل' },
-    { text: 'اذكر مخترعاً مشهوراً اسمه يبدأ بالميم', hint: 'اخترع المصباح الكهربائي', category: 'علمي', difficulty: 'سهل' },
-  ],
-  'ن': [
-    { text: 'اذكر نجماً مشهوراً في كرة القدم اسمه يبدأ بالنون', hint: 'برازيلي لاعب في الدوري السعودي', category: 'كروي', difficulty: 'سهل' },
-    { text: 'اذكر نهراً أفريقياً يبدأ بالنون', hint: 'أطول نهر في العالم', category: 'جغرافيا', difficulty: 'سهل' },
-  ],
-  'ه': [
-    { text: 'اذكر هاتفاً ذكياً يبدأ بالهاء', hint: 'شركة صينية مشهورة', category: 'علمي', difficulty: 'سهل' },
-  ],
-  'و': [
-    { text: 'اذكر وليّاً مشهوراً اسمه يبدأ بالواو', hint: 'من الصحابة الكرام', category: 'ديني', difficulty: 'متوسط' },
-    { text: 'اذكر وحدة قياس علمية تبدأ بالواو', hint: 'تقيس القوة الكهربائية', category: 'علمي', difficulty: 'متوسط' },
-  ],
-};
-
-// ===== GAME STATE =====
-let gameState = {
-  phase: 'lobby',
-  gridSize: 5,
-  grid: [],
-  teamNames: { green: 'الفريق الأخضر', orange: 'الفريق البرتقالي' },
-  players: {},
-  host: null,
-  selectedCell: null,
-  currentQuestion: null,
-  currentQuestionData: null,
-  buttonOpen: false,
-  buttonPressedBy: null,
-  buttonPressedAt: null,
-  answerWindowOpen: false,
-  answerTimerEnd: null,
-  greenTimeoutUntil: 0,
-  orangeTimeoutUntil: 0,
-  wins: { green: 0, orange: 0 },
-  hintVotes: {},
-  hintActive: false,
-  hintUnlocked: false,
-  hintTimerHandle: null,
-  questionTimerHandle: null,
-  cancelVoteTimerHandle: null,
-  answerTimerHandle: null,
-  opponentTimerHandle: null,
-  lastWrongTeam: null,
-  opponentWindowOpen: false,
-  opponentTeam: null,
-  opponentTimerEnd: null,
-  inviteCode: 'حسن',
-  timeoutGiven: {},  // team -> true if already got timeout this question
-  cancelVoteActive: false,
-  cancelVotes: {},
-  playerSurveys: {},
-  questionStartTime: null,
-};
-
-// ─── helpers ───────────────────────────────────────────────────────────────
-function generateGrid(size) {
-  let pool = [];
-  while (pool.length < size * size)
-    pool = pool.concat([...ARABIC_LETTERS].sort(() => Math.random() - 0.5));
-  pool = pool.slice(0, size * size).sort(() => Math.random() - 0.5);
-  const grid = [];
-  let i = 0;
-  for (let r = 0; r < size; r++) {
-    grid.push([]);
-    for (let c = 0; c < size; c++)
-      grid[r].push({ letter: pool[i++], owner: null });
-  }
-  return grid;
-}
-
-function getTeamCount(t) { return Object.values(gameState.players).filter(p => p.team === t).length; }
-
-function getHexNeighbors(r, c, size) {
-  const odd = c % 2 === 1;
-  // Odd-Q offset grid — mathematically corrected
-  const dirs = odd
-    ? [[-1,0],[1,0],[0,-1],[1,-1],[0,1],[1,1]]   // أعمدة فردية
-    : [[-1,0],[1,0],[-1,-1],[0,-1],[-1,1],[0,1]]; // أعمدة زوجية
-  return dirs.map(([dr,dc]) => [r+dr, c+dc])
-             .filter(([nr,nc]) => nr>=0 && nr<size && nc>=0 && nc<size);
-}
-
-function checkWin() {
-  const size = gameState.gridSize, grid = gameState.grid;
-  function bfs(team, starts, fn) {
-    const vis = Array.from({length:size}, () => Array(size).fill(false));
-    const q = starts.filter(([r,c]) => grid[r][c].owner === team);
-    if (!q.length) return false;
-    q.forEach(([r,c]) => vis[r][c] = true);
-    let h = 0;
-    while (h < q.length) {
-      const [r,c] = q[h++];
-      if (fn(r,c)) return true;
-      for (const [nr,nc] of getHexNeighbors(r,c,size))
-        if (!vis[nr][nc] && grid[nr][nc].owner === team) { vis[nr][nc]=true; q.push([nr,nc]); }
-    }
-    return false;
-  }
-  if (bfs('green',  Array.from({length:size},(_,r)=>[r,size-1]), (_,c)=>c===0)) return 'green';
-  if (bfs('orange', Array.from({length:size},(_,c)=>[0,c]),      (r)=>r===size-1)) return 'orange';
-  return null;
-}
-
-function clearAllTimers() {
-  ['hintTimerHandle','questionTimerHandle','cancelVoteTimerHandle','answerTimerHandle','opponentTimerHandle']
-    .forEach(k => { if (gameState[k]) { clearTimeout(gameState[k]); gameState[k]=null; } });
-}
-
-function resetButtonState() {
-  if (gameState.answerTimerHandle) { clearTimeout(gameState.answerTimerHandle); gameState.answerTimerHandle=null; }
-  if (gameState.opponentTimerHandle) { clearTimeout(gameState.opponentTimerHandle); gameState.opponentTimerHandle=null; }
-  gameState.buttonOpen = false;
-  gameState.buttonPressedBy = null;
-  gameState.buttonPressedAt = null;
-  gameState.answerWindowOpen = false;
-  gameState.answerTimerEnd = null;
-  gameState.opponentWindowOpen = false;
-  gameState.opponentTeam = null;
-  gameState.opponentTimerEnd = null;
-  Object.values(gameState.players).forEach(p => { p.muted=false; p.deafened=false; });
-}
-
-function resetGameState() {
-  clearAllTimers();
-  gameState.phase = 'lobby';
-  gameState.grid = generateGrid(gameState.gridSize);
-  gameState.selectedCell = null;
-  gameState.currentQuestion = null;
-  gameState.currentQuestionData = null;
-  gameState.questionStartTime = null;
-  resetButtonState();
-  gameState.greenTimeoutUntil = 0;
-  gameState.orangeTimeoutUntil = 0;
-  gameState.hintVotes = {};
-  gameState.hintActive = false;
-  gameState.hintUnlocked = false;
-  gameState.lastWrongTeam = null;
-  gameState.cancelVoteActive = false;
-  gameState.cancelVotes = {};
-  gameState.timeoutGiven = {};
-  Object.values(gameState.players).forEach(p => { p.score=0; p.correctCount=0; p.wrongCount=0; });
-}
-
-function broadcastState() { io.emit('gameState', sanitizeState()); }
-
-function sanitizeState() {
-  return {
-    phase: gameState.phase,
-    gridSize: gameState.gridSize,
-    grid: gameState.grid,
-    teamNames: gameState.teamNames,
-    players: gameState.players,
-    selectedCell: gameState.selectedCell,
-    currentQuestion: gameState.currentQuestion,
-    currentQuestionData: gameState.currentQuestionData,
-    buttonOpen: gameState.buttonOpen,
-    buttonPressedBy: gameState.buttonPressedBy,
-    answerWindowOpen: gameState.answerWindowOpen,
-    answerTimerEnd: gameState.answerTimerEnd,
-    greenTimeoutUntil: gameState.greenTimeoutUntil,
-    orangeTimeoutUntil: gameState.orangeTimeoutUntil,
-    wins: gameState.wins,
-    hintVotes: gameState.hintVotes,
-    hintActive: gameState.hintActive,
-    hintUnlocked: gameState.hintUnlocked,
-    lastWrongTeam: gameState.lastWrongTeam,
-    opponentWindowOpen: gameState.opponentWindowOpen,
-    opponentTeam: gameState.opponentTeam,
-    opponentTimerEnd: gameState.opponentTimerEnd,
-    inviteCode: gameState.inviteCode,
-    cancelVoteActive: gameState.cancelVoteActive,
-    cancelVotes: gameState.cancelVotes,
-    questionStartTime: gameState.questionStartTime,
-  };
-}
-
-function getQuestionForLetter(letter) {
-  const qs = QUESTIONS_DB[letter];
-  if (!qs?.length) return { text:`اذكر كلمة تبدأ بحرف ${letter}`, hint:'—', category:'عام', difficulty:'سهل' };
-  return qs[Math.floor(Math.random() * qs.length)];
-}
-
-function applyWrongAnswer(wrongTeam) {
-  const now = Date.now();
-  const other = wrongTeam === 'green' ? 'orange' : 'green';
-
-  // Check if this team already got their one timeout for this question
-  const alreadyGotTimeout = gameState.timeoutGiven[wrongTeam];
-
-  if (alreadyGotTimeout) {
-    // No more timeout — just open button for everyone, no penalty
-    gameState.lastWrongTeam = null;
-    gameState.opponentWindowOpen = false;
-    gameState.opponentTeam = null;
-    gameState.opponentTimerEnd = null;
-    gameState.buttonOpen = true;
-    gameState.buttonPressedBy = null;
-    gameState.answerWindowOpen = false;
-    gameState.answerTimerEnd = null;
-    Object.values(gameState.players).forEach(p => { p.muted=false; p.deafened=false; });
-    return;
-  }
-
-  if (gameState.lastWrongTeam && gameState.lastWrongTeam !== wrongTeam) {
-    // الفريق الثاني أجاب غلط — لا يأخذ تايم أوت، يفتح الزر للكل
-    gameState.lastWrongTeam = null;
-    gameState.greenTimeoutUntil = 0;
-    gameState.orangeTimeoutUntil = 0;
-    gameState.opponentWindowOpen = false;
-    gameState.opponentTeam = null;
-    gameState.opponentTimerEnd = null;
-    if (gameState.opponentTimerHandle) { clearTimeout(gameState.opponentTimerHandle); gameState.opponentTimerHandle = null; }
-    gameState.buttonOpen = true;
-    gameState.buttonPressedBy = null;
-    gameState.answerWindowOpen = false;
-    gameState.answerTimerEnd = null;
-    Object.values(gameState.players).forEach(p => { p.muted=false; p.deafened=false; });
-  } else {
-    // First wrong answer — give timeout, open opponent window
-    gameState.timeoutGiven[wrongTeam] = true;
-    gameState.lastWrongTeam = wrongTeam;
-    const until = now + TEAM_TIMEOUT_MS;
-    if (wrongTeam==='green') gameState.greenTimeoutUntil=until;
-    else gameState.orangeTimeoutUntil=until;
-    Object.values(gameState.players).forEach(p => {
-      if (p.team===wrongTeam) { p.muted=true; p.deafened=true; }
-      else { p.muted=false; p.deafened=false; }
-    });
-    gameState.opponentWindowOpen = true;
-    gameState.opponentTeam = other;
-    gameState.opponentTimerEnd = now + TEAM_TIMEOUT_MS;
-    gameState.buttonOpen = true;
-    gameState.buttonPressedBy = null;
-    gameState.answerWindowOpen = false;
-    gameState.answerTimerEnd = null;
-    if (gameState.opponentTimerHandle) clearTimeout(gameState.opponentTimerHandle);
-    gameState.opponentTimerHandle = setTimeout(() => {
-      gameState.opponentWindowOpen = false;
-      gameState.opponentTeam = null;
-      gameState.opponentTimerEnd = null;
-      gameState.lastWrongTeam = null;
-      gameState.buttonOpen = true;
-      gameState.buttonPressedBy = null;
-      gameState.answerWindowOpen = false;
-      gameState.answerTimerEnd = null;
-      gameState.greenTimeoutUntil = 0;
-      gameState.orangeTimeoutUntil = 0;
-      Object.values(gameState.players).forEach(p => { p.muted=false; p.deafened=false; });
-      broadcastState();
-    }, TEAM_TIMEOUT_MS);
-    setTimeout(() => {
-      if (wrongTeam==='green') gameState.greenTimeoutUntil=0;
-      else gameState.orangeTimeoutUntil=0;
-      Object.values(gameState.players).forEach(p => { if (p.team===wrongTeam) { p.muted=false; p.deafened=false; } });
-      broadcastState();
-    }, TEAM_TIMEOUT_MS);
-  }
-}
-
-// ─── PRE-GENERATION (spawn واحد لكل الحروف) ────────────────────────────────
+// ─── PRE-GENERATION (Node.js — no Python) ───────────────────────────────────
 async function preGenerateAllLetters(hostSocketId) {
   if (!gameState.grid.length) return;
   const letters = [...new Set(gameState.grid.flat().filter(c=>!c.owner).map(c=>c.letter))];
@@ -418,44 +133,19 @@ async function preGenerateAllLetters(hostSocketId) {
   const cat  = pref.category  || 'عشوائي';
   const diff = pref.difficulty || 'متوسط';
 
-  const hostSock = () => [...io.sockets.sockets.values()].find(s=>s.id===hostSocketId);
-  if (hostSocketId) hostSock()?.emit('preGenStart', { total: letters.length });
+  const getHost = () => [...io.sockets.sockets.values()].find(s=>s.id===hostSocketId);
+  getHost()?.emit('preGenStart', { total: letters.length });
 
-  // Batch mode: spawn Python ONCE with all letters
-  const arg = JSON.stringify({ letters, category: cat, difficulty: diff, count: 3 });
-  const result = await new Promise((resolve) => {
-    const pyEnv2 = { ...process.env, ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '' };
-    const py = spawn('python3', [path.join(__dirname, 'question_generator.py'), arg], { env: pyEnv2 });
-    let out = '', err2 = '';
-    py.stdout.on('data', d => out += d);
-    py.stderr.on('data', d => err2 += d);
-    py.on('close', () => {
-      if (err2) console.error('PreGen Python error:', err2.slice(0,300));
-      try { resolve(JSON.parse(out.trim())); }
-      catch { console.error('PreGen parse error:', out.slice(0,200)); resolve({}); }
-    });
-    py.on('error', (e) => { console.error('PreGen spawn error:', e.message); resolve({}); });
-    // Progress: emit fake progress every ~2s while waiting
-    let fakeProgress = 0;
-    const progressInterval = setInterval(() => {
-      fakeProgress = Math.min(fakeProgress + Math.floor(letters.length * 0.2), letters.length - 1);
-      if (hostSocketId) hostSock()?.emit('preGenProgress', { done: fakeProgress, total: letters.length });
-    }, 2000);
-    setTimeout(() => { clearInterval(progressInterval); py.kill(); resolve({}); }, 60000);
-    py.on('close', () => clearInterval(progressInterval));
-  });
-
-  // Store in cache
-  if (result && typeof result === 'object') {
-    Object.entries(result).forEach(([letter, questions]) => {
-      if (Array.isArray(questions) && questions.length) {
-        const cacheKey = `${letter}-${cat}-${diff}`;
-        questionCache[cacheKey] = questions;
-      }
-    });
+  let done = 0;
+  // توليد 2 حروف بالتوازي لتجنب rate limiting
+  for (let i = 0; i < letters.length; i += 2) {
+    const batch = letters.slice(i, i + 2);
+    await Promise.all(batch.map(letter => generateQuestionsAI(letter, cat, diff, 3)));
+    done += batch.length;
+    getHost()?.emit('preGenProgress', { done, total: letters.length });
   }
 
-  if (hostSocketId) hostSock()?.emit('preGenDone', { total: letters.length });
+  getHost()?.emit('preGenDone', { total: letters.length });
 }
 
 // ─── SOCKET EVENTS ──────────────────────────────────────────────────────────
