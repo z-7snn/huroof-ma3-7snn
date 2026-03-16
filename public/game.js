@@ -121,15 +121,15 @@ function buildHexGrid(grid, container, hexSize, onCellClick, highlightSelected, 
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', getHexPath(cx, cy, hexSize - 2));
 
-      let fill = '#0d1117';
-      let stroke = '#1e2938';
+      let fill = '#f8fafc';
+      let stroke = '#cbd5e1';
       let strokeW = '1.5';
 
-      if (cell.owner === 'green') { fill = 'rgba(34,197,94,0.3)'; stroke = '#22c55e'; strokeW = '2'; }
-      else if (cell.owner === 'orange') { fill = 'rgba(249,115,22,0.3)'; stroke = '#f97316'; strokeW = '2'; }
+      if (cell.owner === 'green') { fill = '#bbf7d0'; stroke = '#16a34a'; strokeW = '2'; }
+      else if (cell.owner === 'orange') { fill = '#fed7aa'; stroke = '#ea580c'; strokeW = '2'; }
 
       const isSelected = state && state.selectedCell && state.selectedCell.row === r && state.selectedCell.col === c;
-      if (isSelected) { stroke = '#facc15'; strokeW = '3'; fill = 'rgba(250,204,21,0.1)'; }
+      if (isSelected) { stroke = '#d97706'; strokeW = '3'; fill = '#fef3c7'; }
 
       path.setAttribute('fill', fill);
       path.setAttribute('stroke', stroke);
@@ -149,7 +149,7 @@ function buildHexGrid(grid, container, hexSize, onCellClick, highlightSelected, 
       text.setAttribute('font-family', 'Tajawal, sans-serif');
       text.setAttribute('font-size', hexSize * 0.55);
       text.setAttribute('font-weight', '700');
-      text.setAttribute('fill', cell.owner ? '#fff' : '#e2e8f0');
+      text.setAttribute('fill', cell.owner ? '#14532d' : '#1e293b');
 
       if (!cell.owner) {
         text.textContent = cell.letter;

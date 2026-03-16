@@ -190,6 +190,7 @@ let gameState = {
   opponentTeam: null,
   opponentTimerEnd: null,
   inviteCode: 'حسن',
+  timeoutGiven: {},  // team -> true if already got timeout this question
   cancelVoteActive: false,
   cancelVotes: {},
   playerSurveys: {},
@@ -280,6 +281,7 @@ function resetGameState() {
   gameState.lastWrongTeam = null;
   gameState.cancelVoteActive = false;
   gameState.cancelVotes = {};
+  gameState.timeoutGiven = {};
   Object.values(gameState.players).forEach(p => { p.score=0; p.correctCount=0; p.wrongCount=0; });
 }
 
@@ -325,11 +327,13 @@ function getQuestionForLetter(letter) {
 function applyWrongAnswer(wrongTeam) {
   const now = Date.now();
   const other = wrongTeam === 'green' ? 'orange' : 'green';
-  if (gameState.lastWrongTeam && gameState.lastWrongTeam !== wrongTeam) {
-    // Both wrong → open for everyone
+
+  // Check if this team already got their one timeout for this question
+  const alreadyGotTimeout = gameState.timeoutGiven[wrongTeam];
+
+  if (alreadyGotTimeout) {
+    // No more timeout — just open button for everyone, no penalty
     gameState.lastWrongTeam = null;
-    gameState.greenTimeoutUntil = 0;
-    gameState.orangeTimeoutUntil = 0;
     gameState.opponentWindowOpen = false;
     gameState.opponentTeam = null;
     gameState.opponentTimerEnd = null;
@@ -338,7 +342,26 @@ function applyWrongAnswer(wrongTeam) {
     gameState.answerWindowOpen = false;
     gameState.answerTimerEnd = null;
     Object.values(gameState.players).forEach(p => { p.muted=false; p.deafened=false; });
+    return;
+  }
+
+  if (gameState.lastWrongTeam && gameState.lastWrongTeam !== wrongTeam) {
+    // الفريق الثاني أجاب غلط — لا يأخذ تايم أوت، يفتح الزر للكل
+    gameState.lastWrongTeam = null;
+    gameState.greenTimeoutUntil = 0;
+    gameState.orangeTimeoutUntil = 0;
+    gameState.opponentWindowOpen = false;
+    gameState.opponentTeam = null;
+    gameState.opponentTimerEnd = null;
+    if (gameState.opponentTimerHandle) { clearTimeout(gameState.opponentTimerHandle); gameState.opponentTimerHandle = null; }
+    gameState.buttonOpen = true;
+    gameState.buttonPressedBy = null;
+    gameState.answerWindowOpen = false;
+    gameState.answerTimerEnd = null;
+    Object.values(gameState.players).forEach(p => { p.muted=false; p.deafened=false; });
   } else {
+    // First wrong answer — give timeout, open opponent window
+    gameState.timeoutGiven[wrongTeam] = true;
     gameState.lastWrongTeam = wrongTeam;
     const until = now + TEAM_TIMEOUT_MS;
     if (wrongTeam==='green') gameState.greenTimeoutUntil=until;
@@ -356,7 +379,6 @@ function applyWrongAnswer(wrongTeam) {
     gameState.answerTimerEnd = null;
     if (gameState.opponentTimerHandle) clearTimeout(gameState.opponentTimerHandle);
     gameState.opponentTimerHandle = setTimeout(() => {
-      // Opponent didn't press → both wrong
       gameState.opponentWindowOpen = false;
       gameState.opponentTeam = null;
       gameState.opponentTimerEnd = null;
@@ -487,6 +509,7 @@ io.on('connection', (socket) => {
     gameState.lastWrongTeam=null;
     gameState.hintVotes={}; gameState.hintActive=false; gameState.hintUnlocked=false;
     gameState.cancelVoteActive=false; gameState.cancelVotes={};
+    gameState.timeoutGiven={};
     broadcastState();
 
     const pref = gameState.aiPreferences||{};
