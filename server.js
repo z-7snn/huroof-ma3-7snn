@@ -217,9 +217,10 @@ function getTeamCount(t) { return Object.values(gameState.players).filter(p => p
 
 function getHexNeighbors(r, c, size) {
   const odd = c % 2 === 1;
+  // Odd-Q offset grid — mathematically corrected
   const dirs = odd
-    ? [[-1,0],[-1,1],[0,-1],[0,1],[1,0],[1,1]]
-    : [[-1,-1],[-1,0],[0,-1],[0,1],[1,-1],[1,0]];
+    ? [[-1,0],[1,0],[0,-1],[1,-1],[0,1],[1,1]]   // أعمدة فردية
+    : [[-1,0],[1,0],[-1,-1],[0,-1],[-1,1],[0,1]]; // أعمدة زوجية
   return dirs.map(([dr,dc]) => [r+dr, c+dc])
              .filter(([nr,nc]) => nr>=0 && nr<size && nc>=0 && nc<size);
 }
@@ -401,37 +402,51 @@ function applyWrongAnswer(wrongTeam) {
   }
 }
 
-// ─── PRE-GENERATION ─────────────────────────────────────────────────────────
+// ─── PRE-GENERATION (spawn واحد لكل الحروف) ────────────────────────────────
 async function preGenerateAllLetters(hostSocketId) {
   if (!gameState.grid.length) return;
-  // Get all unique letters currently on the grid
   const letters = [...new Set(gameState.grid.flat().filter(c=>!c.owner).map(c=>c.letter))];
+  if (!letters.length) return;
+
   const pref = gameState.aiPreferences || {};
   const cat  = pref.category  || 'عشوائي';
   const diff = pref.difficulty || 'متوسط';
 
-  // Notify host that pre-generation started
-  if (hostSocketId) {
-    const hostSock = [...io.sockets.sockets.values()].find(s=>s.id===hostSocketId);
-    if (hostSock) hostSock.emit('preGenStart', { total: letters.length });
+  const hostSock = () => [...io.sockets.sockets.values()].find(s=>s.id===hostSocketId);
+  if (hostSocketId) hostSock()?.emit('preGenStart', { total: letters.length });
+
+  // Batch mode: spawn Python ONCE with all letters
+  const arg = JSON.stringify({ letters, category: cat, difficulty: diff, count: 3 });
+  const result = await new Promise((resolve) => {
+    const py = spawn('python3', [path.join(__dirname, 'question_generator.py'), arg]);
+    let out = '';
+    py.stdout.on('data', d => out += d);
+    py.on('close', () => {
+      try { resolve(JSON.parse(out.trim())); }
+      catch { resolve({}); }
+    });
+    py.on('error', () => resolve({}));
+    // Progress: emit fake progress every ~2s while waiting
+    let fakeProgress = 0;
+    const progressInterval = setInterval(() => {
+      fakeProgress = Math.min(fakeProgress + Math.floor(letters.length * 0.2), letters.length - 1);
+      if (hostSocketId) hostSock()?.emit('preGenProgress', { done: fakeProgress, total: letters.length });
+    }, 2000);
+    setTimeout(() => { clearInterval(progressInterval); py.kill(); resolve({}); }, 60000);
+    py.on('close', () => clearInterval(progressInterval));
+  });
+
+  // Store in cache
+  if (result && typeof result === 'object') {
+    Object.entries(result).forEach(([letter, questions]) => {
+      if (Array.isArray(questions) && questions.length) {
+        const cacheKey = `${letter}-${cat}-${diff}`;
+        questionCache[cacheKey] = questions;
+      }
+    });
   }
 
-  let done = 0;
-  // Generate 2 at a time to avoid hammering the API
-  for (let i = 0; i < letters.length; i += 2) {
-    const batch = letters.slice(i, i+2);
-    await Promise.all(batch.map(letter => generateQuestionsAI(letter, cat, diff, 3)));
-    done += batch.length;
-    if (hostSocketId) {
-      const hostSock = [...io.sockets.sockets.values()].find(s=>s.id===hostSocketId);
-      if (hostSock) hostSock.emit('preGenProgress', { done, total: letters.length });
-    }
-  }
-
-  if (hostSocketId) {
-    const hostSock = [...io.sockets.sockets.values()].find(s=>s.id===hostSocketId);
-    if (hostSock) hostSock.emit('preGenDone', { total: letters.length });
-  }
+  if (hostSocketId) hostSock()?.emit('preGenDone', { total: letters.length });
 }
 
 // ─── SOCKET EVENTS ──────────────────────────────────────────────────────────

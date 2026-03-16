@@ -108,6 +108,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 .cur{display:inline-block;width:7px;height:13px;background:#00ff41;animation:blink 1s step-end infinite;vertical-align:middle;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .laptop-base{width:min(680px,96vw);height:16px;background:linear-gradient(180deg,#1a1a1a,#111);border-radius:0 0 8px 8px;border:2px solid #1e2938;border-top:none;}
+
+/* ══ SURVEY (inside TTY) ══ */
+.survey-wrap{margin-top:10px;}
+.survey-q{color:#facc15;margin-bottom:6px;font-size:12px;}
+.survey-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.survey-label{color:#bbb;font-size:12px;min-width:80px;}
+.survey-stars{display:flex;gap:4px;}
+.s-star{width:20px;height:20px;border-radius:4px;border:1px solid #2d5a3d;background:#0a0e14;color:#2d5a3d;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:'IBM Plex Mono',monospace;}
+.s-star.on{background:#d97706;border-color:#d97706;color:#fff;}
+.s-star:hover{border-color:#facc15;color:#facc15;}
+.survey-done-btn{margin-top:10px;padding:7px 20px;border-radius:7px;border:1px solid #22c55e;background:rgba(22,197,94,.15);color:#22c55e;font-family:'Tajawal',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s;}
+.survey-done-btn:hover{background:rgba(22,197,94,.25);}
 </style>
 </head>
 <body>
@@ -316,12 +328,73 @@ function pickTeam(team,btn){
 
 socket.on('joinOk',()=>{
   addLine(''); addLine('> ✅ تم الانضمام بنجاح!','c-yellow');
-  addLine('> ⏳ في انتظار الهوست يبدأ اللعبة...','c-dim');
-  sessionStorage.setItem('playerName',playerName);
-  sessionStorage.setItem('playerTeam',playerTeam);
-  sessionStorage.setItem('inviteCode',savedCode);
-  joined=true;
+  // Show survey before waiting
+  showSurvey();
 });
+
+// ── SURVEY ──────────────────────────────────────────────────────────────────
+const SURVEY_CATS = [
+  { key:'كروي',    label:'⚽ كرة القدم' },
+  { key:'ديني',    label:'🕌 ديني' },
+  { key:'علوم',    label:'🔬 علوم طبيعية' },
+  { key:'جغرافيا', label:'🌍 جغرافيا' },
+  { key:'علمي',    label:'💡 علوم وتقنية' },
+  { key:'ثقافي',   label:'🎭 ثقافة عامة' },
+];
+const surveyScores = {};
+
+function showSurvey(){
+  const body = document.getElementById('tty-body');
+  addLine('');
+  addLine('─── استبيان سريع ───────────────────', 'c-yellow');
+  addLine('قيّم معرفتك في كل تصنيف (1-5)', 'c-white');
+  addLine('');
+  const wrap = document.createElement('div');
+  wrap.className = 'survey-wrap';
+  SURVEY_CATS.forEach(cat => {
+    surveyScores[cat.key] = 3;
+    const row = document.createElement('div');
+    row.className = 'survey-row';
+    row.innerHTML = `<span class="survey-label">${cat.label}</span><div class="survey-stars" id="stars-${cat.key}"></div>`;
+    wrap.appendChild(row);
+    body.appendChild(wrap);
+    renderStars(cat.key, 3);
+  });
+  // Done button
+  const doneBtn = document.createElement('button');
+  doneBtn.className = 'survey-done-btn';
+  doneBtn.textContent = '✅ متابعة';
+  doneBtn.onclick = submitSurvey;
+  wrap.appendChild(doneBtn);
+  body.scrollTop = body.scrollHeight;
+}
+
+function renderStars(catKey, val){
+  const container = document.getElementById('stars-'+catKey);
+  if(!container) return;
+  container.innerHTML = '';
+  for(let i=1;i<=5;i++){
+    const s = document.createElement('div');
+    s.className = 'survey-stars';
+    const btn = document.createElement('div');
+    btn.className = 's-star' + (i<=val?' on':'');
+    btn.textContent = i;
+    btn.onclick = () => { surveyScores[catKey]=i; renderStars(catKey,i); };
+    container.appendChild(btn);
+  }
+}
+
+function submitSurvey(){
+  socket.emit('submitSurvey', surveyScores);
+  addLine('');
+  addLine('> ✅ تم حفظ تفضيلاتك!', 'c-yellow');
+  addLine('> ⏳ في انتظار الهوست يبدأ اللعبة...', 'c-dim');
+  joined = true;
+  sessionStorage.setItem('playerName', playerName);
+  sessionStorage.setItem('playerTeam', playerTeam);
+  sessionStorage.setItem('inviteCode', savedCode);
+}
+
 
 socket.on('joinFail',msg=>{
   addLine(''); addLine('> ❌ '+msg);
