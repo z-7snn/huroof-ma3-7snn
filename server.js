@@ -405,8 +405,8 @@ io.on('connection', (socket) => {
   socket.on('setAIPreferences', ({ category, difficulty }) => {
     if (socket.id!==gameState.host) return;
     gameState.aiPreferences = { category: category||'عشوائي', difficulty: difficulty||'متوسط' };
-    clearQuestionCache();
-    preGenerateAllLetters(socket.id);
+    clearQuestionCache(); // امسح كل الكاش عشان يولد بالتصنيف الجديد
+    // لا تعيد التوليد المسبق فوراً — يولد عند اختيار الخلية
   });
 
   socket.on('selectCell', async ({ row, col }) => {
@@ -444,27 +444,44 @@ io.on('connection', (socket) => {
     }, QUESTION_EXPIRE);
   });
 
-  socket.on('selectAlternativeQ', idx => {
-    if (socket.id!==gameState.host) return;
-    const alts=gameState.aiAlternatives||[];
-    if (alts[idx]) { gameState.currentQuestionData=alts[idx]; broadcastState(); }
+  socket.on('selectAlternativeQ', async idx => {
+    if (socket.id!==gameState.host || !gameState.currentQuestion) return;
+    const alts = gameState.aiAlternatives || [];
+    if (alts[idx]) {
+      gameState.currentQuestionData = alts[idx];
+      broadcastState();
+    } else {
+      // لو ما في بدائل، ولّد جديد
+      const letter = gameState.currentQuestion;
+      const cat  = gameState.aiPreferences?.category  || 'عشوائي';
+      const diff = gameState.aiPreferences?.difficulty || 'متوسط';
+      Object.keys(questionCache).forEach(k => { if (k.startsWith(letter+'-')) delete questionCache[k]; });
+      const qs = await generateQuestionsAI(letter, cat, diff, 3);
+      gameState.currentQuestionData = qs[0];
+      gameState.aiAlternatives = qs.slice(1);
+      broadcastState();
+      const hostSock = [...io.sockets.sockets.values()].find(s=>s.id===gameState.host);
+      if (hostSock) hostSock.emit('questionsReady', { active: qs[0], alternatives: qs.slice(1) });
+    }
   });
 
   socket.on('regenerateQuestion', async ({ category, difficulty }) => {
     if (socket.id!==gameState.host || !gameState.currentQuestion) return;
-    const letter=gameState.currentQuestion;
-    const cat=category||gameState.aiPreferences?.category||'عشوائي';
-    const diff=difficulty||gameState.aiPreferences?.difficulty||'متوسط';
-    if(category||difficulty) gameState.aiPreferences={category:cat,difficulty:diff};
-    const ckey = letter+'-'+cat+'-'+diff;
-    delete questionCache[ckey];
+    const letter = gameState.currentQuestion;
+    // حدّث التفضيلات إذا تغيرت
+    if (category)   gameState.aiPreferences.category   = category;
+    if (difficulty) gameState.aiPreferences.difficulty = difficulty;
+    const cat  = gameState.aiPreferences.category  || 'عشوائي';
+    const diff = gameState.aiPreferences.difficulty || 'متوسط';
+    // احذف الكاش لهذا الحرف بكل التصنيفات عشان يولد جديد فعلاً
+    Object.keys(questionCache).forEach(k => { if (k.startsWith(letter+'-')) delete questionCache[k]; });
     const qs = await generateQuestionsAI(letter, cat, diff, 3);
-    if(!gameState.selectedCell) return;
-    gameState.currentQuestionData=qs[0];
-    gameState.aiAlternatives=qs.slice(1);
+    if (!gameState.selectedCell) return;
+    gameState.currentQuestionData = qs[0];
+    gameState.aiAlternatives = qs.slice(1);
     broadcastState();
-    const hostSock=[...io.sockets.sockets.values()].find(s=>s.id===gameState.host);
-    if(hostSock) hostSock.emit('questionsReady',{active:qs[0],alternatives:qs.slice(1)});
+    const hostSock = [...io.sockets.sockets.values()].find(s=>s.id===gameState.host);
+    if (hostSock) hostSock.emit('questionsReady', { active: qs[0], alternatives: qs.slice(1) });
   });
 
   socket.on('judge', correct => {

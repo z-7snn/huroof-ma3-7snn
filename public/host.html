@@ -89,19 +89,43 @@ body{background:var(--bg);color:var(--txt);font-family:'Tajawal',sans-serif;min-
 
 /* Q panel */
 .q-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-.q-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;}
-.q-item{padding:9px 11px;border-radius:8px;border:1.5px solid var(--brd);background:var(--sur2);cursor:pointer;font-size:.83rem;transition:all .15s;line-height:1.4;}
+.q-list{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;}
+
+/* بطاقة السؤال الكاملة */
+.q-item{
+  padding:12px 14px;border-radius:10px;border:2px solid var(--brd);
+  background:var(--sur2);cursor:pointer;transition:all .15s;
+}
 .q-item:hover{border-color:var(--yellow);background:var(--yl);}
-.q-item.on{border-color:var(--green);background:var(--gl);}
+.q-item.on{border-color:var(--green);background:var(--gl);box-shadow:0 0 0 3px rgba(22,163,74,.15);}
 .q-item.loading{opacity:.5;animation:lpulse 1.2s ease infinite alternate;}
 @keyframes lpulse{from{opacity:.4}to{opacity:.7}}
-.q-meta{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;}
-.qb{font-size:.68rem;padding:2px 7px;border-radius:8px;font-weight:700;}
+
+.q-item-text{font-size:.92rem;font-weight:700;color:var(--txt);margin-bottom:6px;line-height:1.4;}
+.q-item-answer{
+  font-size:.85rem;font-weight:900;
+  background:var(--sur);border:1.5px solid var(--gm);border-radius:6px;
+  padding:4px 10px;color:var(--gd);display:inline-block;margin-bottom:6px;
+}
+.q-item-hint{font-size:.78rem;color:var(--mut);margin-bottom:6px;}
+.q-meta{display:flex;gap:5px;flex-wrap:wrap;}
+.qb{font-size:.68rem;padding:2px 8px;border-radius:8px;font-weight:700;}
 .qb.كروي{background:#dbeafe;color:#1d4ed8}.qb.ديني{background:var(--yl);color:var(--yd)}
 .qb.علوم{background:var(--gl);color:var(--gd)}.qb.جغرافيا{background:#f3e8ff;color:#6b21a8}
 .qb.علمي{background:#e0f2fe;color:#0c4a6e}.qb.ثقافي{background:#fce7f3;color:#9d174d}
 .qb.عام{background:var(--sur3);color:var(--mut)}
 .qb.سهل{background:var(--gl);color:var(--gd)}.qb.متوسط{background:var(--yl);color:var(--yd)}.qb.صعب{background:var(--rl);color:var(--red)}
+
+/* Active question display (big card at top) */
+.active-q-card{
+  background:var(--sur);border:2px solid var(--gm);border-radius:12px;
+  padding:14px 16px;margin-bottom:10px;
+}
+.active-q-label{font-size:.68rem;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+.active-q-text{font-size:1rem;font-weight:900;color:var(--txt);margin-bottom:8px;line-height:1.4;}
+.active-q-row{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;}
+.active-q-answer{background:var(--gl);border:1.5px solid var(--gm);border-radius:8px;padding:5px 12px;font-size:.88rem;font-weight:900;color:var(--gd);}
+.active-q-hint{background:var(--yl);border:1.5px solid #fcd34d;border-radius:8px;padding:5px 12px;font-size:.83rem;font-weight:700;color:var(--yd);}
 
 /* OPPONENT BANNER */
 .opp-banner{background:var(--ol);border:1.5px solid var(--om);border-radius:8px;padding:7px 12px;font-size:.83rem;font-weight:700;color:var(--od);display:none;animation:oppPulse 1s ease infinite alternate;}
@@ -509,13 +533,14 @@ function renderQList(questions){
   if(!questions?.length){ container.innerHTML='<div class="q-item loading">لا توجد أسئلة</div>'; return; }
   container.innerHTML = questions.map((q,i) => `
     <div class="q-item${i===0?' on':''}" onclick="pickQ(${i})">
-      <div style="font-weight:700">${q.text}</div>
+      ${i===0 ? '<div style="font-size:.65rem;font-weight:700;color:var(--green);margin-bottom:4px">✅ السؤال المختار</div>' : ''}
+      <div class="q-item-text">${q.text||'—'}</div>
+      <div class="q-item-answer">✓ الجواب: ${q.answer||'—'}</div>
+      <div class="q-item-hint">💡 تلميح: ${q.hint||'—'}</div>
       <div class="q-meta">
         <span class="qb ${q.category||'عام'}">${q.category||'عام'}</span>
         <span class="qb ${q.difficulty||'متوسط'}">${q.difficulty||'متوسط'}</span>
-        ${q.answer&&q.answer!=='—'?`<span style="font-size:.7rem;color:var(--mut)">✓ ${q.answer}</span>`:''}
       </div>
-      ${q.hint&&q.hint!=='—'?`<div style="font-size:.72rem;color:var(--mut);margin-top:2px">💡 ${q.hint}</div>`:''}
     </div>`).join('');
 }
 
@@ -525,10 +550,13 @@ function pickQ(idx){
 }
 
 function regenQ(){
-  const cat = document.getElementById('q-cat')?.value || 'عشوائي';
+  const cat  = document.getElementById('q-cat')?.value  || 'عشوائي';
   const diff = document.getElementById('q-diff')?.value || 'متوسط';
+  // sync global filter
+  const fc = document.getElementById('fi-cat');  if(fc)  fc.value  = cat;
+  const fd = document.getElementById('fi-diff'); if(fd)  fd.value = diff;
   document.getElementById('q-list').innerHTML = '<div class="q-item loading">⏳ جاري توليد أسئلة جديدة...</div>';
-  socket.emit('regenerateQuestion', {category:cat, difficulty:diff});
+  socket.emit('regenerateQuestion', {category: cat, difficulty: diff});
 }
 
 function applyFilter(){
