@@ -453,31 +453,10 @@ select option { background: #111; }
 </head>
 <body>
 
-<!-- JOIN SCREEN -->
-<div id="join-screen">
-  <div class="join-card">
-    <div class="join-title">حروف مع حسن</div>
-    <div class="form-group">
-      <label>اسمك</label>
-      <input type="text" id="player-name" placeholder="أدخل اسمك" maxlength="20">
-    </div>
-    <div class="form-group">
-      <label>الفريق</label>
-      <select id="team-select">
-        <option value="green">🟢 الفريق الأخضر</option>
-        <option value="orange">🟠 الفريق البرتقالي</option>
-      </select>
-    </div>
-    <div id="join-error"></div>
-    <button class="btn-join green" id="join-btn" onclick="joinGame()">انضم للعبة</button>
-  </div>
-  <div id="join-wait">✅ تم الانضمام، في انتظار بدء الهوست...</div>
-</div>
-
 <!-- LOBBY WAITING -->
-<div id="lobby-wait">
+<div id="lobby-wait" class="active">
   <div class="lobby-spinner"></div>
-  <div style="color:var(--muted)">في انتظار بدء اللعبة من الهوست...</div>
+  <div style="color:var(--muted)" id="lobby-msg">⏳ في انتظار الهوست يبدأ اللعبة...</div>
 </div>
 
 <!-- GAME SCREEN -->
@@ -565,32 +544,15 @@ async function initMic() {
   } catch (e) { console.warn('Mic failed:', e); }
 }
 
-function joinGame() {
-  const name = document.getElementById('player-name').value.trim();
-  const team = document.getElementById('team-select').value;
-  if (!name) { document.getElementById('join-error').textContent = 'أدخل اسمك أولاً'; return; }
-  myName = name;
-  myTeam = team;
-  socket.emit('playerJoin', { name, team });
-}
-
-socket.on('joinOk', async ({ team, name }) => {
-  myId = socket.id;
-  myTeam = team;
-  document.getElementById('join-screen').style.display = 'none';
-  document.getElementById('lobby-wait').classList.add('active');
-  await initMic();
-  const btn = document.getElementById('join-btn');
-  if (btn) { btn.className = 'btn-join ' + team; }
-  document.getElementById('my-btn').className = 'my-button ' + myTeam;
-});
-
-socket.on('joinFail', (msg) => {
-  document.getElementById('join-error').textContent = msg;
-});
+socket.on('connect', () => { myId = socket.id; initMic(); });
 
 socket.on('gameState', (state) => {
   gameState = state;
+  if (state.players[myId]) {
+    myTeam = state.players[myId].team;
+    myName = state.players[myId].name;
+    document.getElementById('my-btn').className = 'my-button ' + myTeam;
+  }
   renderGame(state);
 });
 
@@ -614,6 +576,10 @@ function renderGame(state) {
   if (state.phase === 'playing' || state.phase === 'roundEnd') {
     document.getElementById('lobby-wait').classList.remove('active');
     document.getElementById('game-screen').style.display = 'flex';
+  } else {
+    // lobby phase — show waiting
+    document.getElementById('lobby-wait').classList.add('active');
+    document.getElementById('game-screen').style.display = 'none';
   }
 
   // Team names

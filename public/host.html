@@ -406,6 +406,16 @@ input:focus { border-color: var(--yellow); }
     <!-- Left Sidebar: Settings -->
     <div class="host-sidebar">
 
+      <!-- Invite Code -->
+      <div class="panel">
+        <div class="panel-title">رمز الدعوة</div>
+        <div style="display:flex;gap:6px">
+          <input type="text" class="team-name-input" id="invite-code-input" placeholder="رمز الدعوة" style="letter-spacing:3px;text-align:center">
+          <button class="btn-sm primary" onclick="updateInviteCode()">حفظ</button>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:6px" id="invite-code-display"></div>
+      </div>
+
       <!-- Team Names -->
       <div class="panel">
         <div class="panel-title">أسماء الفريقين</div>
@@ -562,7 +572,18 @@ socket.on('hintApproved', () => {
   AudioEngine.playHint();
 });
 
+function updateInviteCode() {
+  const val = document.getElementById('invite-code-input').value.trim();
+  if (!val) return;
+  socket.emit('setInviteCode', val);
+}
+
 function renderHostDashboard(state) {
+  // Invite code display
+  const invDisp = document.getElementById('invite-code-display');
+  if (invDisp) invDisp.textContent = `الرمز الحالي: ${state.inviteCode}`;
+  const invInp = document.getElementById('invite-code-input');
+  if (invInp && document.activeElement !== invInp) invInp.value = state.inviteCode;
   // Wins
   document.getElementById('wins-green').textContent = `🟢 ${state.wins.green}`;
   document.getElementById('wins-orange').textContent = `🟠 ${state.wins.orange}`;

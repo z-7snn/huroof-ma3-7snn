@@ -376,8 +376,7 @@ function pickTeam(team, btn) {
 socket.on('joinOk', () => {
   addLine('');
   addLine('> ✅ تم الانضمام بنجاح!', 'c-yellow');
-  addLine('> انتظر الهوست يبدأ اللعبة...', 'c-dim');
-  setTimeout(() => { window.location.href = '/game.html'; }, 1500);
+  addLine('> ⏳ في انتظار الهوست يبدأ اللعبة...', 'c-dim');
 });
 
 socket.on('joinFail', msg => {
@@ -388,7 +387,11 @@ socket.on('joinFail', msg => {
   }, 800);
 });
 
-socket.on('gameState', () => {});
+socket.on('gameState', (state) => {
+  if (state.phase === 'playing' && playerTeam) {
+    window.location.href = '/game.html';
+  }
+});
 </script>
 </body>
 </html>
