@@ -180,6 +180,7 @@ const socket = io();
 let savedCode = '';
 let playerName = '';
 let playerTeam = '';
+let joinedSuccessfully = false;
 
 // ─── Generate stars ───
 const starsEl = document.getElementById('stars');
@@ -380,6 +381,7 @@ socket.on('joinOk', () => {
   sessionStorage.setItem('playerName', playerName);
   sessionStorage.setItem('playerTeam', playerTeam);
   sessionStorage.setItem('inviteCode', savedCode);
+  joinedSuccessfully = true;
 });
 
 socket.on('joinFail', msg => {
@@ -391,7 +393,7 @@ socket.on('joinFail', msg => {
 });
 
 socket.on('gameState', (state) => {
-  if (state.phase === 'playing' && playerTeam) {
+  if (state.phase === 'playing' && joinedSuccessfully) {
     window.location.href = '/game.html';
   }
 });
