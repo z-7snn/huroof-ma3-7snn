@@ -206,6 +206,20 @@ io.on('connection', (socket) => {
       socket.emit('joinFail', 'رمز الدعوة غير صحيح');
       return;
     }
+
+    // Same player reconnecting (page refresh / navigation)
+    const existing = Object.entries(gameState.players).find(
+      ([id, p]) => p.name === name && p.team === team
+    );
+    if (existing) {
+      const [oldId, playerData] = existing;
+      delete gameState.players[oldId];
+      gameState.players[socket.id] = playerData;
+      broadcastState();
+      socket.emit('joinOk');
+      return;
+    }
+
     if (getTeamCount(team) >= 2) {
       socket.emit('joinFail', 'الفريق ممتلئ');
       return;
@@ -215,7 +229,7 @@ io.on('connection', (socket) => {
       muted: false, deafened: false
     };
     broadcastState();
-    socket.emit('joinOk', { team, name });
+    socket.emit('joinOk');
   });
 
   // Host actions

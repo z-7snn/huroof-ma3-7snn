@@ -566,13 +566,16 @@ socket.on('connect', () => {
 });
 
 socket.on('joinOk', () => {
-  // Successfully re-joined, wait for gameState
+  // joined, waiting for gameState
 });
 
-socket.on('joinFail', () => {
-  // Session expired or team full — go back
-  sessionStorage.clear();
-  window.location.href = '/';
+socket.on('joinFail', (msg) => {
+  // Only redirect if invite code is wrong, not team full
+  if (msg && msg.includes('رمز')) {
+    sessionStorage.clear();
+    window.location.href = '/';
+  }
+  // Otherwise ignore — might be a timing issue
 });
 
 socket.on('gameState', (state) => {
