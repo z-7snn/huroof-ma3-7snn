@@ -4,437 +4,250 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>حروف مع حسن - الهوست</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --green: #22c55e;
-  --orange: #f97316;
-  --yellow: #facc15;
-  --bg: #06080d;
-  --surface: #0a0e14;
-  --surface2: #0d1117;
-  --surface3: #111820;
-  --border: #1a2333;
-  --text: #e2e8f0;
-  --muted: #4b5563;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#16a34a;--green-light:#dcfce7;--green-mid:#86efac;--green-dark:#14532d;
+  --orange:#ea580c;--orange-light:#ffedd5;--orange-mid:#fdba74;--orange-dark:#7c2d12;
+  --yellow:#d97706;--yellow-light:#fef3c7;--yellow-dark:#92400e;
+  --bg:#f0f4f8;--surface:#ffffff;--surface2:#f8fafc;--surface3:#f1f5f9;
+  --border:#e2e8f0;--text:#1e293b;--muted:#64748b;--muted2:#94a3b8;
+  --red:#dc2626;--red-light:#fee2e2;
+  --shadow:0 1px 3px rgba(0,0,0,.08);--shadow-md:0 4px 12px rgba(0,0,0,.1);
 }
+body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min-height:100vh;}
+input,select{font-family:'Tajawal',sans-serif;}
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Tajawal', sans-serif;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+/* LOGIN */
+#host-login{min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.login-card{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:40px;width:340px;text-align:center;box-shadow:var(--shadow-md);}
+.login-title{font-size:1.6rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;}
+.login-sub{color:var(--muted);font-size:.85rem;margin-bottom:24px;}
+.login-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;color:var(--text);font-size:1rem;outline:none;text-align:center;letter-spacing:3px;margin-bottom:14px;transition:border-color .2s;}
+.login-input:focus{border-color:var(--yellow);}
+.login-btn{width:100%;padding:13px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--yellow),#f59e0b);color:#fff;font-weight:900;font-size:1rem;cursor:pointer;transition:all .15s;box-shadow:0 4px 16px rgba(217,119,6,.3);}
+.login-btn:hover{transform:translateY(-1px);}
+#host-error{color:var(--red);font-size:.88rem;margin-top:8px;min-height:20px;}
 
-/* ===== HOST LOGIN ===== */
-#host-login {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+/* DASHBOARD */
+#host-dashboard{display:none;flex-direction:column;min-height:100vh;}
 
-.host-login-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 40px;
-  width: 340px;
-  text-align: center;
-}
+/* TOPBAR */
+.topbar{background:var(--surface);border-bottom:1.5px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;box-shadow:var(--shadow);position:sticky;top:0;z-index:100;}
+.topbar-title{font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;white-space:nowrap;}
+.wins-row{display:flex;gap:12px;align-items:center;font-size:.9rem;}
+.win-badge{padding:4px 12px;border-radius:20px;font-weight:900;}
+.win-badge.green{background:var(--green-light);color:var(--green-dark);}
+.win-badge.orange{background:var(--orange-light);color:var(--orange-dark);}
+.topbar-btns{display:flex;gap:6px;flex-wrap:wrap;}
 
-.host-title {
-  font-size: 1.6rem;
-  font-weight: 900;
-  background: linear-gradient(135deg, var(--green), var(--orange));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 8px;
-}
-
-.host-subtitle { color: var(--muted); font-size: 0.85rem; margin-bottom: 28px; }
-
-input {
-  width: 100%;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px 14px;
-  color: var(--text);
-  font-family: 'Tajawal', sans-serif;
-  font-size: 1rem;
-  outline: none;
-  text-align: center;
-  letter-spacing: 3px;
-  margin-bottom: 16px;
-  transition: border-color 0.2s;
-}
-input:focus { border-color: var(--yellow); }
-
-.btn { border: none; border-radius: 8px; font-family: 'Tajawal', sans-serif; font-weight: 700; cursor: pointer; transition: all 0.15s; }
-.btn-host-login {
-  width: 100%;
-  padding: 13px;
-  font-size: 1rem;
-  background: linear-gradient(135deg, var(--yellow), #f59e0b);
-  color: #000;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(250,204,21,0.3);
-}
-.btn-host-login:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(250,204,21,0.4); }
-
-#host-error { color: #ef4444; font-size: 0.9rem; margin-top: 10px; min-height: 20px; }
-
-/* ===== HOST DASHBOARD ===== */
-#host-dashboard {
-  display: none;
-  min-height: 100vh;
-  flex-direction: column;
-}
-
-/* TOP BAR */
-.host-topbar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 10px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.host-topbar-title {
-  font-size: 1.2rem;
-  font-weight: 900;
-  background: linear-gradient(135deg, var(--green), var(--orange));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.wins-display {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  font-size: 0.9rem;
-}
-.win-count { font-weight: 900; }
-.win-count.green { color: var(--green); }
-.win-count.orange { color: var(--orange); }
-
-.topbar-controls { display: flex; gap: 8px; flex-wrap: wrap; }
-
-/* Buttons */
-.btn-sm {
-  padding: 7px 14px;
-  font-size: 0.85rem;
-  border-radius: 7px;
-  border: 1px solid var(--border);
-  background: var(--surface3);
-  color: var(--text);
-  cursor: pointer;
-  font-family: 'Tajawal', sans-serif;
-  font-weight: 700;
-  transition: all 0.15s;
-}
-.btn-sm:hover { border-color: var(--muted); background: var(--surface2); }
-.btn-sm.green { border-color: var(--green); color: var(--green); }
-.btn-sm.green:hover { background: rgba(34,197,94,0.1); }
-.btn-sm.orange { border-color: var(--orange); color: var(--orange); }
-.btn-sm.orange:hover { background: rgba(249,115,22,0.1); }
-.btn-sm.yellow { border-color: var(--yellow); color: var(--yellow); }
-.btn-sm.yellow:hover { background: rgba(250,204,21,0.1); }
-.btn-sm.red { border-color: #ef4444; color: #ef4444; }
-.btn-sm.red:hover { background: rgba(239,68,68,0.1); }
-.btn-sm.primary { background: var(--green); color: #000; border-color: var(--green); }
-.btn-sm.primary:hover { background: #16a34a; }
+/* BUTTONS */
+.btn{border:none;border-radius:8px;font-family:'Tajawal',sans-serif;font-weight:700;cursor:pointer;transition:all .15s;}
+.btn-sm{padding:7px 13px;font-size:.83rem;border-radius:7px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);}
+.btn-sm:hover{border-color:var(--muted2);background:var(--surface3);}
+.btn-green{border-color:var(--green-mid)!important;color:var(--green)!important;background:var(--green-light)!important;}
+.btn-green:hover{background:#bbf7d0!important;}
+.btn-orange{border-color:var(--orange-mid)!important;color:var(--orange)!important;background:var(--orange-light)!important;}
+.btn-orange:hover{background:#fed7aa!important;}
+.btn-yellow{border-color:#fcd34d!important;color:var(--yellow-dark)!important;background:var(--yellow-light)!important;}
+.btn-yellow:hover{background:#fde68a!important;}
+.btn-red{border-color:#fca5a5!important;color:var(--red)!important;background:var(--red-light)!important;}
+.btn-red:hover{background:#fecaca!important;}
+.btn-primary{background:var(--green)!important;color:#fff!important;border-color:var(--green-dark)!important;}
+.btn-primary:hover{background:var(--green-dark)!important;}
 
 /* MAIN LAYOUT */
-.host-main {
-  display: grid;
-  grid-template-columns: 260px 1fr 260px;
-  gap: 14px;
-  padding: 14px;
-  flex: 1;
-}
+.host-main{display:grid;grid-template-columns:240px 1fr 240px;gap:12px;padding:12px;flex:1;}
+.sidebar{display:flex;flex-direction:column;gap:10px;}
+.panel{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow);}
+.panel-title{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;}
 
-/* SIDEBAR */
-.host-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+/* Settings inputs */
+.setting-row{display:flex;gap:6px;align-items:center;margin-bottom:8px;}
+.team-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.s-input{flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-size:.88rem;outline:none;text-align:right;}
+.s-input:focus{border-color:var(--yellow);}
 
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px;
-}
+/* Grid size */
+.size-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.size-btn{padding:8px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface2);color:var(--muted);font-family:'Tajawal',sans-serif;font-size:.88rem;cursor:pointer;transition:all .15s;}
+.size-btn.active{border-color:var(--yellow);color:var(--yellow-dark);background:var(--yellow-light);}
+.size-btn:hover{border-color:var(--muted2);}
 
-.panel-title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
-}
-
-/* Team name edit */
-.team-name-edit {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.team-name-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.team-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.team-name-input {
-  flex: 1;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 10px;
-  color: var(--text);
-  font-family: 'Tajawal', sans-serif;
-  font-size: 0.9rem;
-  outline: none;
-  letter-spacing: 0;
-  text-align: right;
-}
-.team-name-input:focus { border-color: var(--yellow); }
-
-/* Grid size selector */
-.grid-size-btns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-
-.size-btn {
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface3);
-  color: var(--muted);
-  font-family: 'Tajawal', sans-serif;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.size-btn.active { border-color: var(--yellow); color: var(--yellow); background: rgba(250,204,21,0.08); }
-.size-btn:hover { border-color: var(--muted); }
-
-/* Players list */
-.host-player-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 0;
-  border-bottom: 1px solid var(--border);
-}
-.host-player-row:last-child { border-bottom: none; }
-
-.player-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.host-player-name { flex: 1; font-size: 0.9rem; }
-.host-player-score { font-size: 0.8rem; color: var(--muted); }
-
-.icon-btn {
-  width: 26px;
-  height: 26px;
-  border-radius: 5px;
-  border: 1px solid var(--border);
-  background: var(--surface3);
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-}
-.icon-btn:hover { border-color: #ef4444; color: #ef4444; }
-.icon-btn.active { background: rgba(239,68,68,0.2); color: #ef4444; border-color: #ef4444; }
+/* Player rows */
+.host-player-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);}
+.host-player-row:last-child{border-bottom:none;}
+.p-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.p-name{flex:1;font-size:.88rem;font-weight:700;}
+.p-score{font-size:.78rem;background:var(--surface2);padding:2px 7px;border-radius:10px;font-weight:700;}
+.icon-btn{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;font-size:.78rem;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.icon-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-light);}
+.icon-btn.active{background:var(--red-light);color:var(--red);border-color:var(--red);}
 
 /* CENTER */
-.host-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
+.host-center{display:flex;flex-direction:column;align-items:center;gap:14px;}
+.selected-cell-display{background:var(--yellow-light);border:2px solid #fcd34d;border-radius:10px;padding:10px 24px;font-size:2rem;font-weight:900;color:var(--yellow-dark);min-width:80px;text-align:center;}
+.grid-wrap{display:flex;align-items:center;justify-content:center;width:100%;}
 
-.grid-container-host {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-}
+/* JUDGE PANEL */
+.judge-panel{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px 18px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;box-shadow:var(--shadow-md);}
+.judge-info{display:flex;flex-direction:column;gap:3px;}
+.judge-name{font-size:1.2rem;font-weight:900;}
+.judge-sub{font-size:.78rem;color:var(--muted);}
+.judge-btns{display:flex;gap:10px;}
+.judge-btn{padding:10px 24px;border-radius:8px;border:none;font-family:'Tajawal',sans-serif;font-size:1.05rem;font-weight:900;cursor:pointer;transition:all .15s;}
+.judge-btn.correct{background:var(--green);color:#fff;box-shadow:0 4px 14px rgba(22,163,74,.35);}
+.judge-btn.correct:hover{background:var(--green-dark);transform:translateY(-1px);}
+.judge-btn.wrong{background:var(--red);color:#fff;box-shadow:0 4px 14px rgba(220,38,38,.35);}
+.judge-btn.wrong:hover{background:#b91c1c;transform:translateY(-1px);}
+.judge-btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important;}
 
-/* Judge panel */
-.judge-panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px 20px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+/* Opponent window indicator */
+.opponent-window-banner{
+  background:var(--orange-light);border:1.5px solid var(--orange-mid);border-radius:8px;
+  padding:8px 14px;font-size:.85rem;font-weight:700;color:var(--orange-dark);text-align:center;
+  display:none;
 }
+.opponent-window-banner.active{display:block;animation:bannerPulse 1s ease infinite alternate;}
+@keyframes bannerPulse{from{opacity:1}to{opacity:.7}}
 
-.judge-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+/* Questions panel */
+.q-list{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;}
+.q-item{padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;transition:all .15s;font-size:.85rem;line-height:1.4;}
+.q-item:hover{border-color:var(--yellow);background:var(--yellow-light);}
+.q-item.active{border-color:var(--green);background:var(--green-light);}
+.q-item.loading{opacity:.5;cursor:default;animation:loadPulse 1.2s ease infinite alternate;}
+@keyframes loadPulse{from{opacity:.4}to{opacity:.7}}
+.q-meta{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;}
+.q-badge{font-size:.68rem;padding:2px 7px;border-radius:8px;font-weight:700;}
+.q-badge.cat-كروي{background:#dbeafe;color:#1d4ed8;}
+.q-badge.cat-ديني{background:#fef3c7;color:#92400e;}
+.q-badge.cat-علوم{background:#dcfce7;color:#14532d;}
+.q-badge.cat-جغرافيا{background:#f3e8ff;color:#6b21a8;}
+.q-badge.cat-علمي{background:#e0f2fe;color:#0c4a6e;}
+.q-badge.cat-عام,.q-badge.cat-ثقافي{background:#f1f5f9;color:#475569;}
+.q-badge.diff-سهل{background:#dcfce7;color:var(--green);}
+.q-badge.diff-متوسط{background:#fef3c7;color:var(--yellow-dark);}
+.q-badge.diff-صعب{background:#fee2e2;color:var(--red);}
+.ai-controls{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.ai-select{flex:1;min-width:90px;background:var(--surface2);border:1.5px solid var(--border);border-radius:7px;padding:6px 8px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:.82rem;outline:none;}
+.ai-select:focus{border-color:var(--yellow);}
 
-.judge-label { font-size: 0.8rem; color: var(--muted); }
-.judge-player { font-size: 1.2rem; font-weight: 900; }
+/* Leaderboard */
+.lb-entry{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:.83rem;border-bottom:1px solid var(--border);}
+.lb-entry:last-child{border-bottom:none;}
 
-.judge-btns { display: flex; gap: 10px; }
+/* Win overlay */
+#host-win-overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,.95);z-index:2000;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+#host-win-overlay.active{display:flex;}
+.win-trophy-big{font-size:5rem;animation:bounce .45s ease infinite alternate;}
+@keyframes bounce{from{transform:scale(1)}to{transform:scale(1.08)}}
 
-.judge-btn {
-  padding: 10px 24px;
-  border-radius: 8px;
-  border: none;
-  font-family: 'Tajawal', sans-serif;
-  font-size: 1.1rem;
-  font-weight: 900;
-  cursor: pointer;
-  transition: all 0.15s;
+/* Question timer */
+.q-timer-display{
+  background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;
+  padding:6px 14px;font-size:.9rem;font-weight:900;text-align:center;
 }
-.judge-btn.correct {
-  background: var(--green);
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(34,197,94,0.4);
-}
-.judge-btn.correct:hover { background: #16a34a; transform: translateY(-1px); }
-.judge-btn.wrong {
-  background: #ef4444;
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(239,68,68,0.4);
-}
-.judge-btn.wrong:hover { background: #dc2626; transform: translateY(-1px); }
-.judge-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-/* Current cell display */
-.selected-cell-display {
-  background: rgba(250,204,21,0.08);
-  border: 1px solid rgba(250,204,21,0.3);
-  border-radius: 10px;
-  padding: 10px 20px;
-  font-size: 1.8rem;
-  font-weight: 900;
-  color: var(--yellow);
-  text-align: center;
-  min-width: 80px;
-}
-
-/* WIN OVERLAY */
-#host-win-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.9);
-  z-index: 2000;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-}
-#host-win-overlay.active { display: flex; }
-.win-emoji-big { font-size: 5rem; animation: bounce 0.5s ease infinite alternate; }
-@keyframes bounce { from { transform: scale(1); } to { transform: scale(1.1); } }
+.q-timer-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:6px;}
+.q-timer-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--yellow),var(--red));transition:width .5s linear;}
 </style>
 </head>
 <body>
 
-<!-- HOST LOGIN -->
+<!-- LOGIN -->
 <div id="host-login">
-  <div class="host-login-card">
-    <div class="host-title">🎙️ لوحة الهوست</div>
-    <div class="host-subtitle">حروف مع حسن</div>
-    <input type="password" id="host-code-input" placeholder="أدخل الكود السري" onkeydown="if(event.key==='Enter')hostLogin()">
-    <button class="btn btn-host-login" onclick="hostLogin()">دخول كهوست</button>
+  <div class="login-card">
+    <div class="login-title">🎙️ لوحة الهوست</div>
+    <div class="login-sub">حروف مع حسن (النسخة الرسمية)</div>
+    <input class="login-input" type="password" id="host-code-input" placeholder="الكود السري" onkeydown="if(event.key==='Enter')hostLogin()">
+    <button class="login-btn" onclick="hostLogin()">دخول كهوست</button>
     <div id="host-error"></div>
   </div>
 </div>
 
-<!-- HOST DASHBOARD -->
+<!-- DASHBOARD -->
 <div id="host-dashboard">
-  <!-- Top Bar -->
-  <div class="host-topbar">
-    <div class="host-topbar-title">🎙️ حروف مع حسن — الهوست</div>
 
-    <div class="wins-display">
-      <span class="win-count green" id="wins-green">🟢 0</span>
-      <span style="color:var(--muted)">انتصارات</span>
-      <span class="win-count orange" id="wins-orange">🟠 0</span>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title">🎙️ حروف مع حسن</div>
+    <div class="wins-row">
+      <span class="win-badge green" id="wins-green">🟢 0</span>
+      <span style="color:var(--muted);font-size:.8rem">انتصارات</span>
+      <span class="win-badge orange" id="wins-orange">🟠 0</span>
     </div>
-
-    <div class="topbar-controls">
-      <button class="btn-sm" onclick="emit('newGrid')">🔄 شبكة جديدة</button>
-      <button class="btn-sm" onclick="emit('startGame')">▶️ بدء اللعبة</button>
-      <button class="btn-sm primary" onclick="emit('newRound')">🎯 جولة جديدة</button>
-      <button class="btn-sm" onclick="emit('restartGame')">♻️ إعادة تشغيل</button>
+    <div class="topbar-btns">
+      <button class="btn btn-sm" onclick="emit('newGrid')">🔄 شبكة</button>
+      <button class="btn btn-sm btn-green" onclick="emit('startGame')">▶️ ابدأ</button>
+      <button class="btn btn-sm btn-primary" onclick="emit('newRound')">🎯 جولة جديدة</button>
+      <button class="btn btn-sm" onclick="emit('restartGame')">♻️ إعادة</button>
+      <!-- RESET BUTTON -->
+      <button class="btn btn-sm btn-red" onclick="emit('resetButton')" title="إعادة ضبط الزر — يزيل التايم أوت ويفتح الزر بدون تغيير السؤال">🔁 ريست الزر</button>
     </div>
   </div>
 
-  <!-- Main -->
+  <!-- PRE-GEN PROGRESS BAR -->
+  <div class="pregen-bar-wrap" id="pregen-bar-wrap">
+    <span>🤖 يولّد الأسئلة مسبقاً...</span>
+    <div class="pregen-bar-bg"><div class="pregen-bar-fill" id="pregen-bar-fill" style="width:0%"></div></div>
+    <span id="pregen-count">0/0</span>
+  </div>
+
+  <!-- AI Global Filter (under topbar) -->
+  <div id="ai-global-filter" style="display:none;background:var(--yellow-light);border-bottom:1.5px solid #fcd34d;padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <span style="font-size:.8rem;font-weight:700;color:var(--yellow-dark)">🎯 فلتر أسئلة اللعبة:</span>
+    <select class="ai-select" id="global-ai-cat" style="max-width:130px" onchange="applyGlobalFilter()">
+      <option value="عشوائي">📚 عشوائي</option>
+      <option value="كروي">⚽ كروي</option>
+      <option value="ديني">🕌 ديني</option>
+      <option value="علوم">🔬 علوم</option>
+      <option value="جغرافيا">🌍 جغرافيا</option>
+      <option value="علمي">💡 علمي</option>
+      <option value="ثقافي">🎭 ثقافي</option>
+    </select>
+    <select class="ai-select" id="global-ai-diff" style="max-width:110px" onchange="applyGlobalFilter()">
+      <option value="متوسط">متوسط</option>
+      <option value="سهل">سهل</option>
+      <option value="صعب">صعب</option>
+    </select>
+    <button class="btn btn-sm btn-yellow" onclick="applyGlobalFilter()" style="font-size:.78rem">✅ تطبيق</button>
+  </div>
+
+  <!-- MAIN -->
   <div class="host-main">
 
-    <!-- Left Sidebar: Settings -->
-    <div class="host-sidebar">
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar">
 
       <!-- Invite Code -->
       <div class="panel">
         <div class="panel-title">رمز الدعوة</div>
-        <div style="display:flex;gap:6px">
-          <input type="text" class="team-name-input" id="invite-code-input" placeholder="رمز الدعوة" style="letter-spacing:3px;text-align:center">
-          <button class="btn-sm primary" onclick="updateInviteCode()">حفظ</button>
+        <div style="display:flex;gap:6px;">
+          <input type="text" class="s-input" id="invite-code-input" placeholder="الرمز">
+          <button class="btn btn-sm btn-primary" onclick="updateInviteCode()">حفظ</button>
         </div>
-        <div style="font-size:0.75rem;color:var(--muted);margin-top:6px" id="invite-code-display"></div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:5px" id="invite-code-display"></div>
       </div>
 
       <!-- Team Names -->
       <div class="panel">
         <div class="panel-title">أسماء الفريقين</div>
-        <div class="team-name-edit">
-          <div class="team-name-row">
-            <div class="team-dot" style="background:var(--green)"></div>
-            <input type="text" class="team-name-input" id="green-name-input" placeholder="الفريق الأخضر" oninput="updateTeamName('green',this.value)">
-          </div>
-          <div class="team-name-row">
-            <div class="team-dot" style="background:var(--orange)"></div>
-            <input type="text" class="team-name-input" id="orange-name-input" placeholder="الفريق البرتقالي" oninput="updateTeamName('orange',this.value)">
-          </div>
+        <div class="setting-row">
+          <div class="team-dot" style="background:var(--green)"></div>
+          <input class="s-input" id="green-name-input" placeholder="الفريق الأخضر" oninput="emit('setTeamName',{team:'green',name:this.value})">
+        </div>
+        <div class="setting-row">
+          <div class="team-dot" style="background:var(--orange)"></div>
+          <input class="s-input" id="orange-name-input" placeholder="الفريق البرتقالي" oninput="emit('setTeamName',{team:'orange',name:this.value})">
         </div>
       </div>
 
       <!-- Grid Size -->
       <div class="panel">
         <div class="panel-title">حجم الشبكة</div>
-        <div class="grid-size-btns">
+        <div class="size-grid">
           <button class="size-btn" onclick="setSize(4)">4×4</button>
           <button class="size-btn active" onclick="setSize(5)">5×5</button>
           <button class="size-btn" onclick="setSize(6)">6×6</button>
@@ -442,304 +255,400 @@ input:focus { border-color: var(--yellow); }
         </div>
       </div>
 
-      <!-- Timeout controls -->
+      <!-- Timeout -->
       <div class="panel">
         <div class="panel-title">تايم أوت يدوي</div>
-        <div style="display:flex;flex-direction:column;gap:7px">
-          <button class="btn-sm green" onclick="manualTimeout('green')">⏱️ تايم أوت الأخضر</button>
-          <button class="btn-sm orange" onclick="manualTimeout('orange')">⏱️ تايم أوت البرتقالي</button>
-          <button class="btn-sm" onclick="manualTimeout('all')">⏱️ تايم أوت الكل</button>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button class="btn btn-sm btn-green" onclick="emit('hostTimeout',{team:'green'})">⏱️ تايم أوت الأخضر</button>
+          <button class="btn btn-sm btn-orange" onclick="emit('hostTimeout',{team:'orange'})">⏱️ تايم أوت البرتقالي</button>
+          <button class="btn btn-sm" onclick="emit('hostTimeout',{team:'all'})">⏱️ تايم أوت الكل</button>
         </div>
       </div>
 
-      <!-- Hint button -->
+      <!-- Hint -->
       <div class="panel">
         <div class="panel-title">التلميح</div>
-        <button class="btn-sm yellow" style="width:100%" onclick="emit('openButtonAfterHint')">🔓 فتح الزر بعد التلميح</button>
+        <button class="btn btn-sm btn-yellow" style="width:100%" onclick="emit('openButtonAfterHint')">🔓 فتح الزر بعد التلميح</button>
       </div>
 
     </div>
 
-    <!-- Center: Grid + Judge -->
+    <!-- CENTER -->
     <div class="host-center">
 
-      <!-- Selected cell -->
-      <div style="display:flex;align-items:center;gap:12px">
+      <!-- Selected cell + question timer -->
+      <div style="display:flex;align-items:center;gap:12px;width:100%">
         <div class="selected-cell-display" id="host-selected-cell">—</div>
-        <div style="color:var(--muted);font-size:0.85rem">اضغط على خلية في الشبكة لتحديدها</div>
+        <div style="flex:1">
+          <div id="current-q-text" style="font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:4px">اضغط على خلية لاختيارها</div>
+          <div id="current-q-meta" style="font-size:.78rem;color:var(--muted)"></div>
+          <div class="q-timer-bar"><div class="q-timer-fill" id="q-timer-fill" style="width:100%"></div></div>
+        </div>
+      </div>
+
+      <!-- Opponent window banner -->
+      <div class="opponent-window-banner" id="opponent-banner">
+        ⏱️ نافذة الفريق المنافس مفتوحة — <span id="opponent-banner-team"></span>
+      </div>
+
+      <!-- AI Questions Panel -->
+      <div class="panel" id="q-list-panel" style="width:100%;display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="panel-title" style="margin:0">🤖 أسئلة الذكاء الاصطناعي</div>
+          <button class="btn btn-sm btn-yellow" onclick="regenerateQ()" id="regen-btn" style="padding:4px 10px;font-size:.78rem">🔄 أسئلة جديدة</button>
+        </div>
+        <div class="ai-controls">
+          <select class="ai-select" id="ai-category" onchange="regenerateQ()">
+            <option value="عشوائي">📚 عشوائي</option>
+            <option value="كروي">⚽ كروي</option>
+            <option value="ديني">🕌 ديني</option>
+            <option value="علوم">🔬 علوم</option>
+            <option value="جغرافيا">🌍 جغرافيا</option>
+            <option value="علمي">💡 علمي</option>
+            <option value="ثقافي">🎭 ثقافي</option>
+          </select>
+          <select class="ai-select" id="ai-difficulty" onchange="regenerateQ()">
+            <option value="متوسط">متوسط</option>
+            <option value="سهل">سهل</option>
+            <option value="صعب">صعب</option>
+          </select>
+        </div>
+        <div class="q-list" id="q-list">
+          <div class="q-item loading">⏳ جاري توليد الأسئلة...</div>
+        </div>
       </div>
 
       <!-- Grid -->
-      <div class="grid-container-host" id="host-hex-grid"></div>
+      <div class="grid-wrap" id="host-hex-grid"></div>
 
       <!-- Judge panel -->
       <div class="judge-panel" id="judge-panel">
         <div class="judge-info">
-          <div class="judge-label">اللاعب الضاغط:</div>
-          <div class="judge-player" id="judge-player-name">—</div>
-          <div class="judge-label" id="judge-team-label"></div>
+          <div class="judge-sub">اللاعب الضاغط:</div>
+          <div class="judge-name" id="judge-player-name">—</div>
+          <div class="judge-sub" id="judge-team-label"></div>
         </div>
         <div class="judge-btns">
           <button class="judge-btn correct" id="btn-correct" onclick="judge(true)" disabled>✅ صح</button>
-          <button class="judge-btn wrong" id="btn-wrong" onclick="judge(false)" disabled>❌ غلط</button>
+          <button class="judge-btn wrong"   id="btn-wrong"   onclick="judge(false)" disabled>❌ غلط</button>
         </div>
       </div>
     </div>
 
-    <!-- Right Sidebar: Players -->
-    <div class="host-sidebar">
-
-      <!-- Players -->
+    <!-- RIGHT SIDEBAR -->
+    <div class="sidebar">
       <div class="panel">
-        <div class="panel-title" style="color:var(--green)">🟢 اللاعبون الخضر</div>
+        <div class="panel-title" style="color:var(--green)">🟢 الفريق الأخضر</div>
         <div id="host-green-players"></div>
       </div>
-
       <div class="panel">
-        <div class="panel-title" style="color:var(--orange)">🟠 اللاعبون البرتقاليون</div>
+        <div class="panel-title" style="color:var(--orange)">🟠 الفريق البرتقالي</div>
         <div id="host-orange-players"></div>
       </div>
-
-      <!-- Leaderboard -->
       <div class="panel">
         <div class="panel-title">🏆 المتصدرون</div>
         <div id="host-leaderboard"></div>
       </div>
-
     </div>
   </div>
 </div>
 
 <!-- WIN OVERLAY -->
 <div id="host-win-overlay">
-  <div class="win-emoji-big">🎊</div>
-  <div style="font-size:2.5rem;font-weight:900" id="host-win-team"></div>
-  <div style="color:var(--muted)">فاز بالجولة!</div>
-  <button class="btn-sm primary" onclick="emit('newRound');document.getElementById('host-win-overlay').classList.remove('active')">جولة جديدة</button>
+  <div class="win-trophy-big">🏆</div>
+  <div style="font-size:2.2rem;font-weight:900" id="host-win-team"></div>
+  <div style="color:var(--muted);font-weight:700">فاز بالجولة!</div>
+  <button class="btn btn-sm btn-primary" onclick="emit('newRound');document.getElementById('host-win-overlay').classList.remove('active')">🎯 جولة جديدة</button>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/game.js"></script>
 <script>
-const socket = io();
-let gameState = null;
-let currentSize = 5;
+const socket=io({reconnection:true,reconnectionDelay:1000});
+let gameState=null;
+let localStream=null;
+const peers={};
 
-// WebRTC for host mic
-let localStream = null;
-const peers = {};
+function emit(ev,data){ socket.emit(ev,data); }
 
-async function initHostMic() {
-  try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-  } catch (e) { console.warn('Host mic failed:', e); }
+function hostLogin(){
+  const code=document.getElementById('host-code-input').value.trim();
+  socket.emit('hostLogin',code);
 }
 
-function emit(event, data) {
-  socket.emit(event, data);
-}
+socket.on('hostOk',async()=>{
+  document.getElementById('host-login').style.display='none';
+  document.getElementById('host-dashboard').style.display='flex';
+  try{ localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false}); }catch(e){console.warn(e);}
+});
+socket.on('hostFail',()=>{ document.getElementById('host-error').textContent='الكود غير صحيح ❌'; });
 
-function hostLogin() {
-  const code = document.getElementById('host-code-input').value.trim();
-  socket.emit('hostLogin', code);
-}
-
-socket.on('hostOk', async () => {
-  document.getElementById('host-login').style.display = 'none';
-  document.getElementById('host-dashboard').style.display = 'flex';
-  await initHostMic();
+socket.on('gameState',state=>{
+  gameState=state;
+  renderDashboard(state);
+  setTimeout(connectToPlayers,500);
 });
 
-socket.on('hostFail', () => {
-  document.getElementById('host-error').textContent = 'الكود غير صحيح';
-});
-
-socket.on('gameState', (state) => {
-  gameState = state;
-  renderHostDashboard(state);
-});
-
-socket.on('roundWin', (winner) => {
+socket.on('roundWin',winner=>{
   AudioEngine.playWin();
-  const ov = document.getElementById('host-win-overlay');
+  const ov=document.getElementById('host-win-overlay');
   ov.classList.add('active');
-  const el = document.getElementById('host-win-team');
-  el.textContent = gameState?.teamNames[winner] || winner;
-  el.style.color = winner === 'green' ? 'var(--green)' : 'var(--orange)';
+  const el=document.getElementById('host-win-team');
+  el.textContent=gameState?.teamNames[winner]||winner;
+  el.style.color=winner==='green'?'var(--green)':'var(--orange)';
 });
 
-socket.on('hintApproved', () => {
-  AudioEngine.playHint();
-});
+socket.on('hintApproved',()=>{ AudioEngine.playHint(); });
+socket.on('questionExpired',()=>{ AudioEngine.playExpire(); });
 
-function updateInviteCode() {
-  const val = document.getElementById('invite-code-input').value.trim();
-  if (!val) return;
-  socket.emit('setInviteCode', val);
+function updateInviteCode(){
+  const v=document.getElementById('invite-code-input').value.trim();
+  if(!v) return;
+  socket.emit('setInviteCode',v);
 }
 
-function renderHostDashboard(state) {
-  // Invite code display
-  const invDisp = document.getElementById('invite-code-display');
-  if (invDisp) invDisp.textContent = `الرمز الحالي: ${state.inviteCode}`;
-  const invInp = document.getElementById('invite-code-input');
-  if (invInp && document.activeElement !== invInp) invInp.value = state.inviteCode;
+// ─── RENDER ─────────────────────────────────────────────────────────────────
+function renderDashboard(state){
+  // Invite
+  const invDisp=document.getElementById('invite-code-display');
+  if(invDisp) invDisp.textContent='الرمز الحالي: '+state.inviteCode;
+  const invInp=document.getElementById('invite-code-input');
+  if(invInp&&document.activeElement!==invInp) invInp.value=state.inviteCode;
+
   // Wins
-  document.getElementById('wins-green').textContent = `🟢 ${state.wins.green}`;
-  document.getElementById('wins-orange').textContent = `🟠 ${state.wins.orange}`;
+  document.getElementById('wins-green').textContent='🟢 '+state.wins.green;
+  document.getElementById('wins-orange').textContent='🟠 '+state.wins.orange;
 
-  // Team name inputs
-  const gi = document.getElementById('green-name-input');
-  const oi = document.getElementById('orange-name-input');
-  if (gi && document.activeElement !== gi) gi.value = state.teamNames.green;
-  if (oi && document.activeElement !== oi) oi.value = state.teamNames.orange;
+  // Team inputs
+  const gi=document.getElementById('green-name-input');
+  const oi=document.getElementById('orange-name-input');
+  if(gi&&document.activeElement!==gi) gi.value=state.teamNames.green;
+  if(oi&&document.activeElement!==oi) oi.value=state.teamNames.orange;
 
-  // Grid size buttons
-  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
-  const sizeMap = {4:0,5:1,6:2,7:3};
-  const btns = document.querySelectorAll('.size-btn');
-  if (btns[sizeMap[state.gridSize]]) btns[sizeMap[state.gridSize]].classList.add('active');
+  // Size buttons
+  document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));
+  [{s:4,i:0},{s:5,i:1},{s:6,i:2},{s:7,i:3}].forEach(({s,i})=>{
+    if(s===state.gridSize) document.querySelectorAll('.size-btn')[i]?.classList.add('active');
+  });
 
   // Selected cell
-  const sc = state.selectedCell;
-  if (sc && state.grid[sc.row] && state.grid[sc.row][sc.col]) {
-    document.getElementById('host-selected-cell').textContent = state.grid[sc.row][sc.col].letter || '—';
+  const sc=state.selectedCell;
+  const letter=sc&&state.grid[sc.row]?.[sc.col]?.letter;
+  document.getElementById('host-selected-cell').textContent=letter||'—';
+
+  // Current question
+  const qd=state.currentQuestionData;
+  document.getElementById('current-q-text').textContent=qd?qd.text:'اضغط على خلية لاختيارها';
+  document.getElementById('current-q-meta').textContent=qd?`[${qd.category}] ${qd.difficulty} | تلميح: ${qd.hint}`:'';
+
+  // Question timer
+  if(state.questionStartTime&&state.phase==='playing'){
+    const elapsed=Date.now()-state.questionStartTime;
+    const pct=Math.max(0,100-elapsed/(5*60*1000)*100);
+    document.getElementById('q-timer-fill').style.width=pct+'%';
   } else {
-    document.getElementById('host-selected-cell').textContent = '—';
+    document.getElementById('q-timer-fill').style.width='0%';
   }
 
-  // Grid - host can click cells
-  buildHexGrid(state.grid, document.getElementById('host-hex-grid'), 48,
-    (r, c) => {
-      if (!state.grid[r][c].owner) {
-        socket.emit('selectCell', { row: r, col: c });
-      }
-    }, true, null, state);
-
-  // Judge panel
-  const pressedId = state.buttonPressedBy;
-  const btnCorrect = document.getElementById('btn-correct');
-  const btnWrong = document.getElementById('btn-wrong');
-  if (pressedId && state.players[pressedId]) {
-    const p = state.players[pressedId];
-    document.getElementById('judge-player-name').textContent = p.name;
-    document.getElementById('judge-team-label').textContent = p.team === 'green' ? state.teamNames.green : state.teamNames.orange;
-    document.getElementById('judge-player-name').style.color = p.team === 'green' ? 'var(--green)' : 'var(--orange)';
-    btnCorrect.disabled = false;
-    btnWrong.disabled = false;
+  // AI Questions panel
+  const qPanel=document.getElementById('q-list-panel');
+  if(letter){
+    qPanel.style.display='block';
+    // If loading state, show spinner
+    const qList=document.getElementById('q-list');
+    if(qd&&qd.text==='⏳ جاري توليد السؤال...'&&qList.children.length<=1){
+      qList.innerHTML='<div class="q-item loading">⏳ جاري توليد الأسئلة بالذكاء الاصطناعي...</div>';
+    }
   } else {
-    document.getElementById('judge-player-name').textContent = '—';
-    document.getElementById('judge-team-label').textContent = '';
-    btnCorrect.disabled = true;
-    btnWrong.disabled = true;
+    qPanel.style.display='none';
+    aiQuestions={active:null,alternatives:[]};
+  }
+
+  // Opponent banner
+  const banner=document.getElementById('opponent-banner');
+  if(state.opponentWindowOpen&&state.opponentTeam){
+    banner.classList.add('active');
+    document.getElementById('opponent-banner-team').textContent=
+      state.opponentTeam==='green'?state.teamNames.green:state.teamNames.orange;
+    const secs=Math.ceil((state.opponentTimerEnd-Date.now())/1000);
+    banner.textContent=`⏱️ نافذة ${document.getElementById('opponent-banner-team').textContent} — ${secs}ث`;
+  } else banner.classList.remove('active');
+
+  // Grid
+  buildHexGrid(state.grid, document.getElementById('host-hex-grid'), 46,
+    (r,c)=>{ if(!state.grid[r][c].owner) socket.emit('selectCell',{row:r,col:c}); },
+    true, null, state);
+
+  // Judge
+  const pid=state.buttonPressedBy;
+  const bc=document.getElementById('btn-correct');
+  const bw=document.getElementById('btn-wrong');
+  if(pid&&state.players[pid]){
+    const p=state.players[pid];
+    document.getElementById('judge-player-name').textContent=p.name;
+    document.getElementById('judge-player-name').style.color=p.team==='green'?'var(--green)':'var(--orange)';
+    document.getElementById('judge-team-label').textContent=
+      (p.team==='green'?state.teamNames.green:state.teamNames.orange)+
+      (state.answerWindowOpen&&state.answerTimerEnd?' — '+Math.max(0,Math.ceil((state.answerTimerEnd-Date.now())/1000))+'ث':'');
+    bc.disabled=false; bw.disabled=false;
+  } else {
+    document.getElementById('judge-player-name').textContent='—';
+    document.getElementById('judge-team-label').textContent='';
+    bc.disabled=true; bw.disabled=true;
   }
 
   // Players
-  renderHostTeam('green', state);
-  renderHostTeam('orange', state);
+  renderHostTeam('green',state);
+  renderHostTeam('orange',state);
 
   // Leaderboard
-  document.getElementById('host-leaderboard').innerHTML = buildLeaderboard(state.players, state.teamNames);
+  renderHostLeaderboard(state);
 }
 
-function renderHostTeam(team, state) {
-  const el = document.getElementById('host-' + team + '-players');
-  const teamPlayers = Object.entries(state.players).filter(([,p]) => p.team === team);
-  if (teamPlayers.length === 0) {
-    el.innerHTML = `<div style="color:var(--muted);font-size:0.85rem;text-align:center;padding:8px">لا يوجد لاعبون</div>`;
-    return;
-  }
-  el.innerHTML = teamPlayers.map(([id, p]) => `
-    <div class="host-player-row">
-      <div class="player-dot" style="background:${team === 'green' ? 'var(--green)' : 'var(--orange)'}"></div>
-      <div class="host-player-name">${p.name}</div>
-      <div class="host-player-score">${p.score}نقاط</div>
-      <button class="icon-btn${p.muted ? ' active' : ''}" title="ميوت" onclick="hostMute('${id}', ${!p.muted})">🔇</button>
-      <button class="icon-btn${p.deafened ? ' active' : ''}" title="ديفين" onclick="hostDeafen('${id}', ${!p.deafened})">🙉</button>
+// AI questions state
+let aiQuestions = { active: null, alternatives: [] };
+
+socket.on('questionsReady', ({ active, alternatives }) => {
+  aiQuestions = { active, alternatives };
+  renderAIQuestions(active, alternatives);
+});
+
+function renderAIQuestions(active, alternatives) {
+  const container = document.getElementById('q-list');
+  if (!container) return;
+  const all = [active, ...alternatives].filter(Boolean);
+  if (!all.length) { container.innerHTML='<div class="q-item loading">لا توجد أسئلة</div>'; return; }
+  container.innerHTML = all.map((q, i) => `
+    <div class="q-item${i===0?' active':''}" onclick="pickAIQuestion(${i})">
+      <div style="font-weight:700">${q.text}</div>
+      <div class="q-meta">
+        <span class="q-badge cat-${q.category||'عام'}">${q.category||'عام'}</span>
+        <span class="q-badge diff-${q.difficulty||'متوسط'}">${q.difficulty||'متوسط'}</span>
+        ${q.answer&&q.answer!=='—'?`<span style="font-size:.7rem;color:var(--muted)">✓ ${q.answer}</span>`:''}
+      </div>
+      ${q.hint&&q.hint!=='—'?`<div style="font-size:.72rem;color:var(--muted);margin-top:3px">💡 ${q.hint}</div>`:''}
     </div>
   `).join('');
 }
 
-function updateTeamName(team, name) {
-  socket.emit('setTeamName', { team, name });
+function pickAIQuestion(idx) {
+  document.querySelectorAll('.q-item').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  if (idx > 0) socket.emit('selectAlternativeQ', idx - 1);
 }
 
-function setSize(size) {
-  currentSize = size;
-  socket.emit('setGridSize', size);
+function regenerateQ() {
+  const cat = document.getElementById('ai-category')?.value || 'عشوائي';
+  const diff = document.getElementById('ai-difficulty')?.value || 'متوسط';
+  document.getElementById('q-list').innerHTML = '<div class="q-item loading">⏳ جاري توليد أسئلة جديدة...</div>';
+  socket.emit('regenerateQuestion', { category: cat, difficulty: diff });
 }
 
-function judge(correct) {
+function renderHostTeam(team,state){
+  const el=document.getElementById('host-'+team+'-players');
+  const ps=Object.entries(state.players).filter(([,p])=>p.team===team);
+  if(!ps.length){ el.innerHTML=`<div style="color:var(--muted2);font-size:.82rem;text-align:center;padding:8px">لا يوجد لاعبون</div>`; return; }
+  el.innerHTML=ps.map(([id,p])=>`
+    <div class="host-player-row">
+      <div class="p-dot" style="background:${team==='green'?'var(--green)':'var(--orange)'}"></div>
+      <div class="p-name">${p.name}</div>
+      <div class="p-score" style="color:${team==='green'?'var(--green)':'var(--orange)'}">${p.correctCount||0}✓ ${p.wrongCount||0}✗</div>
+      <button class="icon-btn${p.muted?' active':''}" onclick="emit('hostMutePlayer',{playerId:'${id}',muted:${!p.muted}})">🔇</button>
+      <button class="icon-btn${p.deafened?' active':''}" onclick="emit('hostDeafenPlayer',{playerId:'${id}',deafened:${!p.deafened}})">🙉</button>
+    </div>
+  `).join('');
+}
+
+function renderHostLeaderboard(state){
+  const el=document.getElementById('host-leaderboard');
+  const medals=['🥇','🥈','🥉'];
+  const sorted=Object.entries(state.players)
+    .map(([id,p])=>({id,...p,net:(p.correctCount||0)-(p.wrongCount||0)}))
+    .sort((a,b)=>b.net-a.net).slice(0,3);
+  el.innerHTML=sorted.map((p,i)=>`
+    <div class="lb-entry">
+      <span>${medals[i]||''}</span>
+      <span style="flex:1;font-weight:700;color:${p.team==='green'?'var(--green)':'var(--orange)'}">${p.name}</span>
+      <span style="font-weight:900;color:${p.net>=0?'var(--green)':'var(--red)'}">${p.net>=0?'+':''}${p.net}</span>
+    </div>
+  `).join('');
+}
+
+function judge(correct){
   AudioEngine.resume();
-  if (correct) AudioEngine.playCorrect();
-  else AudioEngine.playWrong();
-  socket.emit('judge', correct);
+  if(correct) AudioEngine.playCorrect(); else AudioEngine.playWrong();
+  socket.emit('judge',correct);
+  // Broadcast result to players
+  if(gameState?.buttonPressedBy && gameState.players[gameState.buttonPressedBy])
+    socket.emit('judgeResult',{correct, playerName:gameState.players[gameState.buttonPressedBy].name});
 }
 
-function manualTimeout(team) {
-  socket.emit('hostTimeout', { team });
-}
+function setSize(s){ socket.emit('setGridSize',s); }
 
-function hostMute(playerId, muted) {
-  socket.emit('hostMutePlayer', { playerId, muted });
-}
+// Refresh judge timer display
+setInterval(()=>{ if(gameState) renderDashboard(gameState); },500);
 
-function hostDeafen(playerId, deafened) {
-  socket.emit('hostDeafenPlayer', { playerId, deafened });
-}
+// ─── WEBRTC ───────────────────────────────────────────────────────────────
+socket.on('webrtc-offer',  async({from,offer})=>{ if(!localStream)return; const pc=createHostPeer(from); await pc.setRemoteDescription(offer); const ans=await pc.createAnswer(); await pc.setLocalDescription(ans); socket.emit('webrtc-answer',{to:from,answer:ans}); });
+socket.on('webrtc-answer', async({from,answer})=>{ await peers[from]?.setRemoteDescription(answer); });
+socket.on('webrtc-ice',    ({from,candidate})=>{ peers[from]?.addIceCandidate(candidate); });
 
-// WebRTC for host
-socket.on('webrtc-offer', async ({ from, offer }) => {
-  if (!localStream) return;
-  const pc = createHostPeer(from);
-  await pc.setRemoteDescription(offer);
-  const answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
-  socket.emit('webrtc-answer', { to: from, answer });
-});
-socket.on('webrtc-answer', async ({ from, answer }) => {
-  await peers[from]?.setRemoteDescription(answer);
-});
-socket.on('webrtc-ice', ({ from, candidate }) => {
-  peers[from]?.addIceCandidate(candidate);
-});
-
-function createHostPeer(id) {
-  if (peers[id]) peers[id].close();
-  const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-  peers[id] = pc;
-  if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-  pc.onicecandidate = e => { if (e.candidate) socket.emit('webrtc-ice', { to: id, candidate: e.candidate }); };
-  pc.ontrack = e => {
-    let audio = document.getElementById('haudio-' + id);
-    if (!audio) {
-      audio = document.createElement('audio');
-      audio.id = 'haudio-' + id;
-      audio.autoplay = true;
-      document.body.appendChild(audio);
-    }
-    audio.srcObject = e.streams[0];
-  };
+function createHostPeer(id){
+  if(peers[id]) peers[id].close();
+  const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+  peers[id]=pc;
+  if(localStream) localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
+  pc.onicecandidate=e=>{ if(e.candidate) socket.emit('webrtc-ice',{to:id,candidate:e.candidate}); };
+  pc.ontrack=e=>{ let a=document.getElementById('haudio-'+id); if(!a){a=document.createElement('audio');a.id='haudio-'+id;a.autoplay=true;document.body.appendChild(a);} a.srcObject=e.streams[0]; };
   return pc;
 }
 
-async function connectToPlayers() {
-  if (!gameState || !localStream) return;
-  for (const [id] of Object.entries(gameState.players)) {
-    if (!peers[id]) {
-      const pc = createHostPeer(id);
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      socket.emit('webrtc-offer', { to: id, offer });
-    }
+async function connectToPlayers(){
+  if(!gameState||!localStream) return;
+  for(const [id] of Object.entries(gameState.players)){
+    if(!peers[id]){ const pc=createHostPeer(id); const o=await pc.createOffer(); await pc.setLocalDescription(o); socket.emit('webrtc-offer',{to:id,offer:o}); }
   }
 }
+socket.on('gameState',()=>setTimeout(connectToPlayers,500));
+document.getElementById('host-code-input')?.addEventListener('keydown',e=>{ if(e.key==='Enter') hostLogin(); });
 
-socket.on('gameState', () => setTimeout(connectToPlayers, 500));
+// ── PRE-GEN EVENTS ──────────────────────────────────────────────────────────
+socket.on('preGenStart', ({ total }) => {
+  const wrap = document.getElementById('pregen-bar-wrap');
+  wrap.classList.add('active');
+  document.getElementById('pregen-bar-fill').style.width = '0%';
+  document.getElementById('pregen-count').textContent = '0/' + total;
+});
 
-// Enter key login
-document.getElementById('host-code-input')?.addEventListener('keydown', e => {
-  if (e.key === 'Enter') hostLogin();
+socket.on('preGenProgress', ({ done, total }) => {
+  const pct = Math.round(done / total * 100);
+  document.getElementById('pregen-bar-fill').style.width = pct + '%';
+  document.getElementById('pregen-count').textContent = done + '/' + total;
+});
+
+socket.on('preGenDone', ({ total }) => {
+  document.getElementById('pregen-bar-fill').style.width = '100%';
+  document.getElementById('pregen-count').textContent = total + '/' + total + ' ✅';
+  setTimeout(() => {
+    document.getElementById('pregen-bar-wrap').classList.remove('active');
+  }, 2500);
+});
+
+// ── GLOBAL AI FILTER ────────────────────────────────────────────────────────
+function applyGlobalFilter() {
+  const cat  = document.getElementById('global-ai-cat')?.value  || 'عشوائي';
+  const diff = document.getElementById('global-ai-diff')?.value || 'متوسط';
+  // Sync into per-question selects too
+  const aiCatEl  = document.getElementById('ai-category');
+  const aiDiffEl = document.getElementById('ai-difficulty');
+  if (aiCatEl)  aiCatEl.value  = cat;
+  if (aiDiffEl) aiDiffEl.value = diff;
+  socket.emit('setAIPreferences', { category: cat, difficulty: diff });
+}
+
+// Show global filter when game starts
+socket.on('gameState', state => {
+  const filterBar = document.getElementById('ai-global-filter');
+  if (filterBar) filterBar.style.display = (state.phase === 'playing') ? 'flex' : 'none';
 });
 </script>
 </body>

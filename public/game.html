@@ -3,503 +3,278 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>حروف مع حسن - اللاعب</title>
+<title>حروف مع حسن</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#16a34a;--green-light:#dcfce7;--green-mid:#86efac;--green-dark:#14532d;
+  --orange:#ea580c;--orange-light:#ffedd5;--orange-mid:#fdba74;--orange-dark:#7c2d12;
+  --yellow:#d97706;--yellow-light:#fef3c7;
+  --bg:#f0f4f8;--surface:#ffffff;--surface2:#f8fafc;
+  --border:#e2e8f0;--text:#1e293b;--muted:#64748b;--muted2:#94a3b8;
+  --red:#dc2626;--red-light:#fee2e2;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:0 4px 12px rgba(0,0,0,.1);
+}
+body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min-height:100vh;overflow-x:hidden;}
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── TOP BAR ── */
+.topbar{
+  background:var(--surface);border-bottom:1.5px solid var(--border);
+  padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  box-shadow:var(--shadow);position:sticky;top:0;z-index:100;
+}
+.topbar-title{
+  font-size:1.1rem;font-weight:900;
+  background:linear-gradient(135deg,var(--green),var(--orange));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  white-space:nowrap;
+}
+.topbar-badge{
+  padding:4px 10px;border-radius:20px;font-size:.78rem;font-weight:700;
+}
+.topbar-question{font-size:.9rem;color:var(--orange);font-weight:700;text-align:center;flex:1;}
 
-:root {
-  --green: #22c55e;
-  --orange: #f97316;
-  --bg: #080c10;
-  --surface: #0d1117;
-  --surface2: #111820;
-  --border: #1e2938;
-  --text: #e2e8f0;
-  --muted: #4b5563;
+/* ── TIMER BAR ── */
+.question-timer-bar{
+  height:4px;background:var(--border);
+  position:sticky;top:52px;z-index:99;
+}
+.question-timer-fill{
+  height:100%;background:linear-gradient(90deg,var(--green),var(--yellow),var(--red));
+  transition:width .5s linear;width:100%;
 }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Tajawal', sans-serif;
-  min-height: 100vh;
-  overflow-x: hidden;
+/* ── LOBBY WAIT ── */
+#lobby-wait{
+  position:fixed;inset:0;background:var(--bg);z-index:500;
+  display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;
 }
+#lobby-wait.active{display:flex;}
+.spinner{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-/* Scanlines */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px);
-  pointer-events: none;
-  z-index: 9999;
+/* ── MAIN LAYOUT ── */
+.game-wrap{display:grid;grid-template-columns:200px 1fr 200px;gap:12px;padding:12px;min-height:calc(100vh - 56px);}
+
+/* ── PANELS ── */
+.side-panel{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow);}
+.panel-label{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;}
+
+/* Team header bar */
+.team-header-bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;font-weight:900;font-size:.92rem;}
+.team-header-bar.green{background:var(--green-light);color:var(--green-dark);border:1.5px solid var(--green-mid);}
+.team-header-bar.orange{background:var(--orange-light);color:var(--orange-dark);border:1.5px solid var(--orange-mid);}
+
+/* Player card */
+.player-card{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);
+  transition:all .2s;
 }
+.player-card.speaking{border-color:var(--green);background:var(--green-light);}
+.player-card.pressed-green{border-color:var(--green);background:var(--green-light);animation:pulseBorder .5s ease infinite alternate;}
+.player-card.pressed-orange{border-color:var(--orange);background:var(--orange-light);animation:pulseBorder .5s ease infinite alternate;}
+@keyframes pulseBorder{from{opacity:1}to{opacity:.6}}
+.player-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.82rem;flex-shrink:0;}
+.player-avatar.green{background:var(--green-light);color:var(--green);}
+.player-avatar.orange{background:var(--orange-light);color:var(--orange);}
+.player-name-text{font-size:.88rem;font-weight:700;flex:1;color:var(--text);}
+.player-stats{font-size:.72rem;color:var(--muted);display:flex;gap:4px;}
+.stat-chip{padding:1px 6px;border-radius:8px;font-weight:700;}
+.stat-correct{background:#dcfce7;color:var(--green);}
+.stat-wrong{background:#fee2e2;color:var(--red);}
 
-/* ===== JOIN SCREEN ===== */
-#join-screen {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.join-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 40px;
-  width: 380px;
-  max-width: 95vw;
-}
-
-.join-title {
-  text-align: center;
-  font-size: 1.8rem;
-  font-weight: 900;
-  background: linear-gradient(135deg, var(--green), var(--orange));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 28px;
-}
-
-.form-group { margin-bottom: 14px; }
-label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 5px; }
-input, select {
-  width: 100%;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 11px 14px;
-  color: var(--text);
-  font-family: 'Tajawal', sans-serif;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.2s;
-}
-input:focus, select:focus { border-color: var(--green); }
-select option { background: #111; }
-
-.btn-join {
-  width: 100%;
-  margin-top: 20px;
-  padding: 13px;
-  border-radius: 10px;
-  border: none;
-  font-family: 'Tajawal', sans-serif;
-  font-size: 1.05rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-join.green { background: linear-gradient(135deg, var(--green), #16a34a); color: #fff; box-shadow: 0 4px 20px rgba(34,197,94,0.3); }
-.btn-join.orange { background: linear-gradient(135deg, var(--orange), #ea580c); color: #fff; box-shadow: 0 4px 20px rgba(249,115,22,0.3); }
-.btn-join:hover { transform: translateY(-1px); }
-
-#join-error { color: #ef4444; text-align: center; font-size: 0.9rem; min-height: 20px; }
-#join-wait { text-align: center; color: var(--muted); font-size: 0.9rem; display: none; }
-
-/* ===== GAME SCREEN ===== */
-#game-screen {
-  display: none;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-/* HEADER */
-.game-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  gap: 16px;
-}
-
-.header-leader {
-  font-size: 0.85rem;
-  color: var(--green);
-  font-weight: 700;
-  text-align: right;
-  min-width: 120px;
-}
-
-.header-title {
-  font-size: 1.4rem;
-  font-weight: 900;
-  background: linear-gradient(135deg, var(--green), var(--orange));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  white-space: nowrap;
-}
-
-.header-question {
-  font-size: 0.9rem;
-  color: var(--orange);
-  text-align: left;
-  min-width: 120px;
-  font-weight: 700;
-}
-
-/* MAIN LAYOUT */
-.game-main {
-  display: grid;
-  grid-template-columns: 220px 1fr 220px;
-  gap: 16px;
-  padding: 16px;
-  flex: 1;
-  min-height: 0;
-}
-
-/* TEAM PANELS */
-.team-panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.team-name-header {
-  font-size: 1rem;
-  font-weight: 900;
-  text-align: center;
-  padding: 8px;
-  border-radius: 8px;
-}
-
-.green-header { color: var(--green); background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); }
-.orange-header { color: var(--orange); background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.2); }
-
-.player-entry {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  transition: all 0.3s;
-}
-
-.player-entry.speaking {
-  box-shadow: 0 0 0 2px var(--green);
-}
-
-.player-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  font-size: 0.9rem;
-  flex-shrink: 0;
-}
-
-.player-name { font-size: 0.9rem; font-weight: 700; flex: 1; }
-.player-score { font-size: 0.8rem; color: var(--muted); }
-
-/* Player button in team panel */
-.mini-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.mini-btn.green { background: var(--green); color: #fff; box-shadow: 0 2px 8px rgba(34,197,94,0.4); }
-.mini-btn.orange { background: var(--orange); color: #fff; box-shadow: 0 2px 8px rgba(249,115,22,0.4); }
-.mini-btn.locked { background: #2a2a2a; color: #555; cursor: not-allowed; box-shadow: none; }
-.mini-btn.pressed-green { animation: btnFlash 0.5s ease infinite alternate; background: var(--green); }
-.mini-btn.pressed-orange { animation: btnFlash 0.5s ease infinite alternate; background: var(--orange); }
-@keyframes btnFlash { from { opacity: 1; transform: scale(1); } to { opacity: 0.5; transform: scale(0.9); } }
-.mini-btn.expired { background: #ef4444; color: #fff; }
-.mini-btn.other-expired { background: var(--orange); color: #fff; }
+/* Timeout bar */
+.timeout-bar-wrap{height:4px;border-radius:2px;background:var(--border);overflow:hidden;display:none;}
+.timeout-bar-wrap.active{display:block;}
+.timeout-bar{height:100%;border-radius:2px;transition:width .1s linear;}
+.timeout-bar.green{background:var(--green);}
+.timeout-bar.orange{background:var(--orange);}
 
 /* Leaderboard */
-.leaderboard-section { margin-top: 8px; }
-.lb-title { font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; text-align: center; }
-.lb-entry {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  padding: 4px 0;
-  gap: 6px;
+.lb-entry{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);font-size:.83rem;}
+.lb-entry:last-child{border-bottom:none;}
+.lb-medal{font-size:1rem;width:20px;text-align:center;}
+.lb-name{flex:1;font-weight:700;}
+.lb-score{font-weight:900;font-size:.9rem;}
+
+/* Hint / Cancel vote buttons */
+.vote-btn{
+  width:100%;padding:8px;border-radius:8px;border:1.5px dashed;
+  font-family:'Tajawal',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;display:none;
+}
+.vote-btn.hint{border-color:var(--yellow);background:var(--yellow-light);color:var(--yellow);}
+.vote-btn.cancel-vote{border-color:var(--red);background:var(--red-light);color:var(--red);}
+.vote-btn.active{display:block;}
+.vote-btn.voted{opacity:.5;cursor:default;}
+.vote-btn:hover:not(.voted){filter:brightness(.95);}
+
+/* ── CENTER ── */
+.game-center{display:flex;flex-direction:column;align-items:center;gap:16px;}
+
+/* Hex grid */
+.hex-grid-wrap{display:flex;align-items:center;justify-content:center;width:100%;}
+
+/* ── BUTTON AREA ── */
+.button-area{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;}
+
+/* Other players' buttons strip (above the grid) */
+.others-strip{
+  display:flex;gap:12px;justify-content:center;flex-wrap:wrap;width:100%;
+}
+.mini-player-btn{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.mini-player-btn-circle{
+  width:52px;height:52px;border-radius:50%;border:none;
+  font-size:1rem;font-weight:900;cursor:default;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;box-shadow:var(--shadow);
+}
+.mini-player-btn-circle.green-idle{background:var(--green-light);color:var(--green);border:2px solid var(--green-mid);}
+.mini-player-btn-circle.orange-idle{background:var(--orange-light);color:var(--orange);border:2px solid var(--orange-mid);}
+.mini-player-btn-circle.btn-pressed-green{background:var(--green);color:#fff;border:2px solid var(--green-dark);animation:pulseBtn .4s ease infinite alternate;}
+.mini-player-btn-circle.btn-pressed-orange{background:var(--orange);color:#fff;border:2px solid var(--orange-dark);animation:pulseBtnO .4s ease infinite alternate;}
+.mini-player-btn-circle.btn-timeout{background:var(--red-light);color:var(--red);border:2px solid var(--red);}
+.mini-player-btn-circle.btn-locked{background:#f1f5f9;color:var(--muted2);border:2px solid var(--border);}
+@keyframes pulseBtn{from{box-shadow:0 0 0 0 rgba(22,163,74,.4)}to{box-shadow:0 0 0 10px rgba(22,163,74,0)}}
+@keyframes pulseBtnO{from{box-shadow:0 0 0 0 rgba(234,88,12,.4)}to{box-shadow:0 0 0 10px rgba(234,88,12,0)}}
+.mini-name-label{font-size:.7rem;font-weight:700;color:var(--muted);}
+
+/* MY BIG BUTTON */
+.my-big-btn-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.answer-countdown{font-size:2.8rem;font-weight:900;min-height:52px;display:flex;align-items:center;justify-content:center;line-height:1;}
+.my-big-btn{
+  width:120px;height:120px;border-radius:50%;border:none;
+  font-family:'Tajawal',sans-serif;font-size:1.3rem;font-weight:900;cursor:pointer;
+  transition:all .15s;position:relative;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:2px;
+  -webkit-tap-highlight-color:transparent;
+}
+.my-big-btn.green{
+  background:radial-gradient(circle at 38% 35%,#4ade80,var(--green));color:#fff;
+  box-shadow:0 8px 0 var(--green-dark),0 10px 24px rgba(22,163,74,.35),inset 0 1px 0 rgba(255,255,255,.25);
+}
+.my-big-btn.green:active,.my-big-btn.green.pressed{box-shadow:0 3px 0 var(--green-dark),0 4px 12px rgba(22,163,74,.25),inset 0 1px 0 rgba(255,255,255,.25);transform:translateY(5px);}
+.my-big-btn.orange{
+  background:radial-gradient(circle at 38% 35%,#fb923c,var(--orange));color:#fff;
+  box-shadow:0 8px 0 var(--orange-dark),0 10px 24px rgba(234,88,12,.35),inset 0 1px 0 rgba(255,255,255,.25);
+}
+.my-big-btn.orange:active,.my-big-btn.orange.pressed{box-shadow:0 3px 0 var(--orange-dark),0 4px 12px rgba(234,88,12,.25),inset 0 1px 0 rgba(255,255,255,.25);transform:translateY(5px);}
+.my-big-btn.locked{background:#e2e8f0;color:var(--muted2);box-shadow:0 6px 0 #cbd5e1;cursor:not-allowed;}
+.my-big-btn.timeout-state{background:#fee2e2;color:var(--red);box-shadow:0 6px 0 #fecaca;cursor:not-allowed;}
+.my-big-btn.flashing-green{animation:myFlashG .35s ease infinite alternate;}
+.my-big-btn.flashing-orange{animation:myFlashO .35s ease infinite alternate;}
+.my-big-btn.expired{background:#fee2e2;color:var(--red);box-shadow:0 6px 0 #fecaca;}
+@keyframes myFlashG{from{box-shadow:0 8px 0 var(--green-dark),0 0 20px rgba(22,163,74,.5)}to{box-shadow:0 8px 0 var(--green-dark),0 0 50px rgba(22,163,74,1)}}
+@keyframes myFlashO{from{box-shadow:0 8px 0 var(--orange-dark),0 0 20px rgba(234,88,12,.5)}to{box-shadow:0 8px 0 var(--orange-dark),0 0 50px rgba(234,88,12,1)}}
+.my-btn-label{font-size:.8rem;color:var(--muted);margin-top:2px;text-align:center;}
+
+/* ── FULLSCREEN OVERLAY ── */
+#overlay{
+  display:none;position:fixed;inset:0;background:rgba(255,255,255,.95);z-index:1000;
+  flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  backdrop-filter:blur(4px);
+}
+#overlay.active{display:flex;}
+.overlay-player-name{font-size:2.2rem;font-weight:900;}
+.overlay-countdown{font-size:9rem;font-weight:900;line-height:1;text-shadow:0 4px 0 rgba(0,0,0,.1);}
+.overlay-label{font-size:1rem;color:var(--muted);font-weight:700;}
+.overlay-expired{font-size:1.4rem;font-weight:900;color:var(--red);}
+
+/* Judgment flash */
+#judgment-flash{
+  display:none;position:fixed;inset:0;z-index:1500;
+  align-items:center;justify-content:center;
+  flex-direction:column;gap:12px;
+}
+#judgment-flash.active{display:flex;animation:flashFade .2s ease;}
+@keyframes flashFade{from{opacity:0}to{opacity:1}}
+.judgment-icon{font-size:8rem;filter:drop-shadow(0 4px 20px rgba(0,0,0,.15));}
+.judgment-text{font-size:2rem;font-weight:900;}
+
+/* ── WIN OVERLAY ── */
+#win-overlay{
+  display:none;position:fixed;inset:0;background:rgba(255,255,255,.97);z-index:2000;
+  flex-direction:column;align-items:center;justify-content:center;gap:16px;
+}
+#win-overlay.active{display:flex;}
+.win-trophy{font-size:5rem;animation:winBounce .45s ease infinite alternate;}
+@keyframes winBounce{from{transform:scale(1)}to{transform:scale(1.08)}}
+.win-team-name{font-size:2.5rem;font-weight:900;}
+
+/* ── MVP overlay ── */
+#mvp-card{
+  background:var(--yellow-light);border:2px solid var(--yellow);border-radius:16px;
+  padding:16px 28px;text-align:center;max-width:320px;
 }
 
-/* TIMEOUT BAR */
-.timeout-bar-wrap { display: none; height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
-.timeout-bar-wrap.active { display: block; }
-.timeout-bar { height: 100%; border-radius: 2px; transition: width 0.1s linear; }
-.timeout-bar.green { background: var(--green); }
-.timeout-bar.orange { background: var(--orange); }
-
-/* HINT VOTE BUTTON */
-.hint-vote-btn {
-  width: 100%;
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px dashed #facc15;
-  background: rgba(250,204,21,0.05);
-  color: #facc15;
-  font-family: 'Tajawal', sans-serif;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: none;
-}
-.hint-vote-btn.active { display: block; }
-.hint-vote-btn:hover { background: rgba(250,204,21,0.1); }
-.hint-vote-btn.voted { opacity: 0.5; cursor: default; }
-
-/* CENTER - Grid & button */
-.game-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-}
-
-.hex-grid-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-}
-
-/* My button */
-.my-button-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.my-button-countdown {
-  font-size: 2.5rem;
-  font-weight: 900;
-  color: var(--green);
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-shadow: 0 0 20px currentColor;
-}
-
-.my-button {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  border: none;
-  font-family: 'Tajawal', sans-serif;
-  font-size: 1.4rem;
-  font-weight: 900;
-  cursor: pointer;
-  transition: all 0.15s;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.my-button.green {
-  background: radial-gradient(circle at 35% 35%, #4ade80, #16a34a);
-  color: #fff;
-  box-shadow: 0 6px 0 #15803d, 0 8px 20px rgba(34,197,94,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
-}
-.my-button.green:active, .my-button.green.pressed {
-  box-shadow: 0 2px 0 #15803d, 0 4px 10px rgba(34,197,94,0.3), inset 0 1px 0 rgba(255,255,255,0.3);
-  transform: translateY(4px);
-}
-.my-button.orange {
-  background: radial-gradient(circle at 35% 35%, #fb923c, #ea580c);
-  color: #fff;
-  box-shadow: 0 6px 0 #c2410c, 0 8px 20px rgba(249,115,22,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
-}
-.my-button.orange:active, .my-button.orange.pressed {
-  box-shadow: 0 2px 0 #c2410c, 0 4px 10px rgba(249,115,22,0.3), inset 0 1px 0 rgba(255,255,255,0.3);
-  transform: translateY(4px);
-}
-.my-button.locked {
-  background: #2a2a2a;
-  color: #555;
-  box-shadow: 0 4px 0 #1a1a1a;
-  cursor: not-allowed;
-}
-
-.my-button.flashing-green { animation: myBtnFlash 0.4s ease infinite alternate; }
-.my-button.flashing-orange { animation: myBtnFlashO 0.4s ease infinite alternate; }
-@keyframes myBtnFlash { from { box-shadow: 0 6px 0 #15803d, 0 0 30px rgba(34,197,94,0.6); } to { box-shadow: 0 6px 0 #15803d, 0 0 60px rgba(34,197,94,1); } }
-@keyframes myBtnFlashO { from { box-shadow: 0 6px 0 #c2410c, 0 0 30px rgba(249,115,22,0.6); } to { box-shadow: 0 6px 0 #c2410c, 0 0 60px rgba(249,115,22,1); } }
-
-.my-button-label { font-size: 0.8rem; color: var(--muted); }
-
-/* FULLSCREEN OVERLAY */
-#overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.92);
-  z-index: 1000;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-}
-#overlay.active { display: flex; }
-
-.overlay-countdown {
-  font-size: 8rem;
-  font-weight: 900;
-  text-shadow: 0 0 40px currentColor;
-  line-height: 1;
-}
-
-.overlay-player {
-  font-size: 2rem;
-  font-weight: 900;
-  opacity: 0.9;
-}
-
-.overlay-teams {
-  display: flex;
-  gap: 32px;
-  align-items: flex-end;
-}
-
-.overlay-team-col {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: center;
-}
-
-.overlay-mini-btn {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: none;
-  cursor: default;
-  font-size: 1.2rem;
-}
-
-/* ROUND WIN OVERLAY */
-#win-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.95);
-  z-index: 2000;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-}
-#win-overlay.active { display: flex; }
-
-.win-emoji { font-size: 5rem; animation: winBounce 0.5s ease infinite alternate; }
-@keyframes winBounce { from { transform: scale(1); } to { transform: scale(1.1); } }
-.win-team { font-size: 2.5rem; font-weight: 900; }
-
-/* Lobby waiting */
-#lobby-wait {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  z-index: 500;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 16px;
-}
-#lobby-wait.active { display: flex; }
-.lobby-spinner {
-  width: 48px;
-  height: 48px;
-  border: 3px solid var(--border);
-  border-top-color: var(--green);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-@media (max-width: 768px) {
-  .game-main { grid-template-columns: 1fr; }
-  .team-panel { display: none; }
+@media(max-width:768px){
+  .game-wrap{grid-template-columns:1fr;}
+  .side-panel{display:none;}
 }
 </style>
 </head>
 <body>
 
-<!-- LOBBY WAITING -->
 <div id="lobby-wait" class="active">
-  <div class="lobby-spinner"></div>
-  <div style="color:var(--muted)" id="lobby-msg">⏳ في انتظار الهوست يبدأ اللعبة...</div>
+  <div class="spinner"></div>
+  <div id="lobby-msg" style="color:var(--muted);font-weight:700">⏳ جاري الاتصال...</div>
 </div>
 
-<!-- GAME SCREEN -->
-<div id="game-screen">
-  <!-- Header -->
-  <div class="game-header">
-    <div class="header-leader" id="header-leader">-</div>
-    <div class="header-title">حروف مع حسن</div>
-    <div class="header-question" id="header-question">-</div>
+<div id="game-screen" style="display:none">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-title">حروف مع حسن <span style="font-size:.65rem;font-weight:400;color:var(--muted)">(النسخة الرسمية)</span></div>
+    <div class="topbar-question" id="topbar-question">—</div>
+    <div id="topbar-info" style="font-size:.82rem;color:var(--muted);white-space:nowrap;text-align:left">—</div>
   </div>
+  <div class="question-timer-bar"><div class="question-timer-fill" id="q-timer-fill"></div></div>
 
-  <!-- Main grid -->
-  <div class="game-main">
-    <!-- Green Team -->
-    <div class="team-panel">
-      <div class="team-name-header green-header" id="green-team-name">الفريق الأخضر</div>
+  <!-- MAIN -->
+  <div class="game-wrap">
+
+    <!-- LEFT: Green team -->
+    <div class="side-panel">
+      <div class="team-header-bar green" id="green-header">🟢 <span id="green-team-name">الأخضر</span></div>
       <div id="green-players"></div>
       <div class="timeout-bar-wrap" id="green-timeout-wrap">
         <div class="timeout-bar green" id="green-timeout-bar" style="width:100%"></div>
       </div>
-      <div class="leaderboard-section">
-        <div class="lb-title">المتصدرون</div>
+      <div style="margin-top:4px">
+        <div class="panel-label">المتصدرون 🏆</div>
         <div id="leaderboard"></div>
       </div>
+      <!-- Hint vote -->
+      <button class="vote-btn hint" id="hint-vote-btn" onclick="voteHint()">💡 تصويت للتلميح</button>
+      <!-- Cancel vote -->
+      <button class="vote-btn cancel-vote" id="cancel-vote-btn" onclick="voteCancelQ()">❌ تصويت لإلغاء السؤال</button>
     </div>
 
-    <!-- Center -->
+    <!-- CENTER -->
     <div class="game-center">
-      <div class="hex-grid-container" id="hex-grid"></div>
+      <!-- Other players buttons (above grid) -->
+      <div class="others-strip" id="others-strip"></div>
 
-      <div class="my-button-wrap" id="my-btn-wrap">
-        <div class="my-button-countdown" id="my-countdown"></div>
-        <button class="my-button" id="my-btn" onclick="pressMyButton()">اضغط</button>
-        <div class="my-button-label" id="my-btn-label">انتظر سؤال الهوست</div>
+      <!-- Hex grid -->
+      <div class="hex-grid-wrap" id="hex-grid"></div>
 
-        <!-- Hint vote -->
-        <button class="hint-vote-btn" id="hint-vote-btn" onclick="voteHint()">💡 تصويت للتلميح</button>
+      <!-- My button section -->
+      <div class="button-area">
+        <div class="my-big-btn-wrap">
+          <div class="answer-countdown" id="answer-countdown"></div>
+          <button class="my-big-btn locked" id="my-btn" onclick="pressMyButton()">🔒</button>
+          <div class="my-btn-label" id="my-btn-label">انتظر سؤال الهوست</div>
+        </div>
       </div>
     </div>
 
-    <!-- Orange Team -->
-    <div class="team-panel">
-      <div class="team-name-header orange-header" id="orange-team-name">الفريق البرتقالي</div>
+    <!-- RIGHT: Orange team -->
+    <div class="side-panel">
+      <div class="team-header-bar orange" id="orange-header">🟠 <span id="orange-team-name">البرتقالي</span></div>
       <div id="orange-players"></div>
       <div class="timeout-bar-wrap" id="orange-timeout-wrap">
         <div class="timeout-bar orange" id="orange-timeout-bar" style="width:100%"></div>
@@ -508,132 +283,133 @@ select option { background: #111; }
   </div>
 </div>
 
-<!-- FULLSCREEN OVERLAY (when someone presses button) -->
+<!-- OVERLAY: someone pressed -->
 <div id="overlay">
-  <div class="overlay-countdown" id="overlay-countdown">3</div>
-  <div class="overlay-player" id="overlay-player-name"></div>
-  <div class="overlay-teams" id="overlay-teams"></div>
+  <div class="overlay-player-name" id="overlay-player-name"></div>
+  <div class="overlay-label">عنده 5 ثوانٍ يجاوب!</div>
+  <div class="overlay-countdown" id="overlay-countdown">5</div>
+</div>
+
+<!-- Judgment flash -->
+<div id="judgment-flash">
+  <div class="judgment-icon" id="judgment-icon"></div>
+  <div class="judgment-text" id="judgment-text"></div>
 </div>
 
 <!-- WIN OVERLAY -->
 <div id="win-overlay">
-  <div class="win-emoji">🎊</div>
-  <div class="win-team" id="win-team-name"></div>
-  <div style="color:var(--muted);font-size:1rem">فاز بالجولة!</div>
+  <div class="win-trophy">🏆</div>
+  <div class="win-team-name" id="win-team-name"></div>
+  <div style="color:var(--muted);font-weight:700">فاز بالجولة!</div>
+  <div id="mvp-card" style="display:none">
+    <div style="font-size:1.4rem">⭐ MVP</div>
+    <div id="mvp-name" style="font-size:1.2rem;font-weight:900;margin-top:4px"></div>
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/game.js"></script>
 <script>
-const socket = io();
+const socket = io({ reconnection:true, reconnectionDelay:1000, reconnectionAttempts:10 });
 
-let myId = null;
-let myTeam = null;
-let myName = null;
-let gameState = null;
-let overlayTimer = null;
-let hintVoted = false;
+let myId=null, myTeam=null, myName=null, gameState=null;
+let overlayTimer=null, answerCdTimer=null, qTimerAnim=null;
+let hintVoted=false, cancelVoted=false;
 
 // WebRTC
-let localStream = null;
-const peers = {};
+let localStream=null;
+const peers={};
 
-async function initMic() {
-  try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-  } catch (e) { console.warn('Mic failed:', e); }
+async function initMic(){
+  try{ localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false}); }
+  catch(e){ console.warn('Mic:',e); }
 }
 
-// Re-join automatically using saved session data
-socket.on('connect', () => {
-  myId = socket.id;
+socket.on('connect', ()=>{
+  myId=socket.id;
   initMic();
-
-  const savedName = sessionStorage.getItem('playerName');
-  const savedTeam = sessionStorage.getItem('playerTeam');
-  const savedCode = sessionStorage.getItem('inviteCode');
-
-  if (savedName && savedTeam && savedCode) {
-    myName = savedName;
-    myTeam = savedTeam;
-    document.getElementById('my-btn').className = 'my-button ' + myTeam;
-    document.getElementById('lobby-msg').textContent = `⏳ مرحباً ${myName}، في انتظار الهوست...`;
-    socket.emit('playerJoin', { name: savedName, team: savedTeam, inviteCode: savedCode });
+  const name=sessionStorage.getItem('playerName');
+  const team=sessionStorage.getItem('playerTeam');
+  const code=sessionStorage.getItem('inviteCode');
+  if(name&&team&&code){
+    myName=name; myTeam=team;
+    applyTeamClass();
+    document.getElementById('lobby-msg').textContent=`⏳ مرحباً ${name}، جاري الاتصال...`;
+    socket.emit('playerJoin',{name,team,inviteCode:code});
   } else {
-    // No session data — redirect back to login
-    window.location.href = '/';
+    window.location.href='/';
   }
 });
 
-socket.on('joinOk', () => {
-  // joined, waiting for gameState
+socket.on('joinFail', msg=>{
+  if(msg?.includes('رمز')){ sessionStorage.clear(); window.location.href='/'; }
 });
 
-socket.on('joinFail', (msg) => {
-  // Only redirect if invite code is wrong, not team full
-  if (msg && msg.includes('رمز')) {
-    sessionStorage.clear();
-    window.location.href = '/';
-  }
-  // Otherwise ignore — might be a timing issue
-});
-
-socket.on('gameState', (state) => {
-  gameState = state;
-  // Keep our identity from sessionStorage, just verify we're in the player list
-  if (!myTeam) {
-    myTeam = sessionStorage.getItem('playerTeam');
-    myName = sessionStorage.getItem('playerName');
-    if (myTeam) document.getElementById('my-btn').className = 'my-button ' + myTeam;
-  }
+socket.on('gameState', state=>{
+  gameState=state;
+  if(!myTeam){ myTeam=sessionStorage.getItem('playerTeam'); myName=sessionStorage.getItem('playerName'); applyTeamClass(); }
   renderGame(state);
+  setTimeout(startPeerConnections,500);
 });
 
-socket.on('buttonPressed', ({ playerId, playerName, team }) => {
+socket.on('buttonPressed',({playerId,playerName,team})=>{
   AudioEngine.playButtonPress();
-  showOverlay(playerId, playerName, team);
+  showOverlay(playerId,playerName,team);
 });
 
-socket.on('roundWin', (winner) => {
+socket.on('roundWin', winner=>{
   AudioEngine.playWin();
   showWinOverlay(winner);
 });
 
-socket.on('hintApproved', () => {
-  AudioEngine.playHint();
+socket.on('hintApproved',()=>{ AudioEngine.playHint(); });
+
+socket.on('questionExpired',()=>{
+  AudioEngine.playExpire();
+  showJudgmentFlash('⏰','انتهى وقت السؤال!','#dc2626','#fee2e2');
 });
 
-// ===== RENDER =====
-function renderGame(state) {
-  // Switch screens
-  if (state.phase === 'playing' || state.phase === 'roundEnd') {
-    document.getElementById('lobby-wait').classList.remove('active');
-    document.getElementById('game-screen').style.display = 'flex';
-  } else {
-    // lobby phase — show waiting
-    document.getElementById('lobby-wait').classList.add('active');
-    document.getElementById('game-screen').style.display = 'none';
-  }
+socket.on('questionCancelled',()=>{
+  showJudgmentFlash('🚫','تم إلغاء السؤال','#dc2626','#fee2e2');
+});
+
+function applyTeamClass(){
+  if(myTeam) document.getElementById('my-btn').className='my-big-btn '+myTeam+' locked';
+}
+
+// ─── RENDER ─────────────────────────────────────────────────────────────────
+function renderGame(state){
+  const isPlaying = state.phase==='playing'||state.phase==='roundEnd';
+  document.getElementById('lobby-wait').classList.toggle('active',!isPlaying);
+  document.getElementById('game-screen').style.display = isPlaying?'block':'none';
+  if(!isPlaying) return;
 
   // Team names
-  document.getElementById('green-team-name').textContent = state.teamNames.green;
-  document.getElementById('orange-team-name').textContent = state.teamNames.orange;
+  document.getElementById('green-team-name').textContent=state.teamNames.green;
+  document.getElementById('orange-team-name').textContent=state.teamNames.orange;
 
-  // Header
-  const players = Object.entries(state.players);
-  const leaders = players.sort((a,b) => b[1].score - a[1].score);
-  document.getElementById('header-leader').textContent = leaders[0] ? `👑 ${leaders[0][1].name}` : '-';
-  document.getElementById('header-question').textContent = state.currentQuestion ? `السؤال: ${state.currentQuestion}` : '-';
+  // Topbar
+  const qData=state.currentQuestionData;
+  document.getElementById('topbar-question').textContent =
+    qData ? `${state.currentQuestion} ← ${qData.text}` : (state.currentQuestion?`الحرف: ${state.currentQuestion}`:'—');
+  document.getElementById('topbar-info').textContent =
+    qData ? `[${qData.category}] ${qData.difficulty}` : '';
+
+  // Question timer
+  renderQuestionTimer(state);
 
   // Grid
-  buildHexGrid(state.grid, document.getElementById('hex-grid'), 46, null, true, myTeam, state);
+  buildHexGrid(state.grid, document.getElementById('hex-grid'), 44, null, true, myTeam, state);
 
   // Players panels
-  renderTeamPanel('green', state);
-  renderTeamPanel('orange', state);
+  renderTeamPanel('green',state);
+  renderTeamPanel('orange',state);
+
+  // Others strip (all players except me, shown as mini buttons above grid)
+  renderOthersStrip(state);
 
   // Leaderboard
-  document.getElementById('leaderboard').innerHTML = buildLeaderboard(state.players, state.teamNames);
+  renderLeaderboard(state);
 
   // My button
   renderMyButton(state);
@@ -641,249 +417,281 @@ function renderGame(state) {
   // Timeouts
   renderTimeouts(state);
 
-  // Hint vote
-  renderHintVote(state);
+  // Vote buttons
+  renderVoteButtons(state);
 
-  // WebRTC mute/deafen
+  // WebRTC
   applyAudioState(state);
 }
 
-function renderTeamPanel(team, state) {
-  const el = document.getElementById(team + '-players');
-  const teamPlayers = Object.entries(state.players).filter(([,p]) => p.team === team);
-  el.innerHTML = teamPlayers.map(([id, p]) => {
-    const isMe = id === myId;
-    const isMuted = p.muted;
-    const isDeafened = p.deafened;
-    return `
-      <div class="player-entry${isMuted ? '' : ' speaking'}" id="pe-${id}">
-        <div class="player-avatar" style="background:${team === 'green' ? 'rgba(34,197,94,0.2)' : 'rgba(249,115,22,0.2)'};color:${team === 'green' ? 'var(--green)' : 'var(--orange)'}">
-          ${p.name[0]}
-        </div>
-        <div style="flex:1">
-          <div class="player-name">${p.name}${isMe ? ' (أنت)' : ''}</div>
-          <div class="player-score">${p.score} نقاط ${isMuted ? '🔇' : '🎙️'}</div>
+function renderQuestionTimer(state){
+  const fill=document.getElementById('q-timer-fill');
+  if(state.questionStartTime && (state.phase==='playing')){
+    const elapsed=Date.now()-state.questionStartTime;
+    const total=5*60*1000;
+    const pct=Math.max(0,Math.min(100,100-(elapsed/total*100)));
+    fill.style.width=pct+'%';
+  } else {
+    fill.style.width='0%';
+  }
+}
+
+function renderTeamPanel(team,state){
+  const el=document.getElementById(team+'-players');
+  const ps=Object.entries(state.players).filter(([,p])=>p.team===team);
+  if(!ps.length){ el.innerHTML=`<div style="color:var(--muted2);font-size:.8rem;text-align:center;padding:8px">لا يوجد لاعبون</div>`; return; }
+  el.innerHTML=ps.map(([id,p])=>{
+    const net=p.correctCount-(p.wrongCount||0);
+    const isMe=id===myId;
+    const isPressed=state.buttonPressedBy===id;
+    let cardClass='player-card';
+    if(isPressed) cardClass+=' pressed-'+team;
+    return `<div class="${cardClass}" id="pc-${id}">
+      <div class="player-avatar ${team}">${p.name[0]}</div>
+      <div style="flex:1">
+        <div class="player-name-text">${p.name}${isMe?' (أنت)':''}</div>
+        <div class="player-stats">
+          <span class="stat-chip stat-correct">✓${p.correctCount||0}</span>
+          <span class="stat-chip stat-wrong">✗${p.wrongCount||0}</span>
+          <span style="color:${net>=0?'var(--green)':'var(--red)'};font-weight:700">${net>=0?'+':''}${net}</span>
         </div>
       </div>
-    `;
+      <span style="font-size:.75rem;color:var(--muted)">${p.muted?'🔇':'🎙️'}</span>
+    </div>`;
   }).join('');
 }
 
-function renderMyButton(state) {
-  const btn = document.getElementById('my-btn');
-  const label = document.getElementById('my-btn-label');
-  const pressed = state.buttonPressedBy;
-
-  if (!state.buttonOpen && !pressed) {
-    btn.className = 'my-button locked';
-    btn.textContent = '🔒';
-    label.textContent = 'انتظر...';
-    return;
-  }
-
-  if (pressed) {
-    if (pressed === myId) {
-      btn.className = `my-button ${myTeam} flashing-${myTeam}`;
-      btn.textContent = '⚡';
-      label.textContent = 'أنت ضغطت!';
-    } else {
-      btn.className = 'my-button locked';
-      btn.textContent = '🔒';
-      label.textContent = gameState?.players[pressed]?.name + ' ضغط';
-    }
-    return;
-  }
-
-  // Check if my team is in timeout
-  const now = Date.now();
-  const inTimeout = myTeam === 'green' ? state.greenTimeoutUntil > now : state.orangeTimeoutUntil > now;
-
-  if (inTimeout || (gameState?.players[myId]?.muted)) {
-    btn.className = 'my-button locked';
-    btn.textContent = '⏱️';
-    label.textContent = 'تايم أوت';
-    return;
-  }
-
-  btn.className = `my-button ${myTeam}`;
-  btn.textContent = 'اضغط';
-  label.textContent = 'الزر مفتوح!';
+function renderOthersStrip(state){
+  const strip=document.getElementById('others-strip');
+  const others=Object.entries(state.players).filter(([id])=>id!==myId);
+  if(!others.length){ strip.innerHTML=''; return; }
+  strip.innerHTML=others.map(([id,p])=>{
+    const isPressed=state.buttonPressedBy===id;
+    const now=Date.now();
+    const inTimeout=(p.team==='green'&&state.greenTimeoutUntil>now)||(p.team==='orange'&&state.orangeTimeoutUntil>now);
+    let cls='mini-player-btn-circle ';
+    if(isPressed) cls+='btn-pressed-'+p.team;
+    else if(inTimeout) cls+='btn-timeout';
+    else if(!state.buttonOpen&&!state.buttonPressedBy) cls+='btn-locked';
+    else cls+=p.team+'-idle';
+    return `<div class="mini-player-btn">
+      <div class="${cls}">${p.name[0]}</div>
+      <div class="mini-name-label">${p.name}</div>
+    </div>`;
+  }).join('');
 }
 
-function renderTimeouts(state) {
-  const now = Date.now();
-  ['green','orange'].forEach(team => {
-    const until = state[team + 'TimeoutUntil'];
-    const wrap = document.getElementById(team + '-timeout-wrap');
-    const bar = document.getElementById(team + '-timeout-bar');
-    if (until > now) {
-      wrap.classList.add('active');
-      const pct = ((until - now) / 10000) * 100;
-      bar.style.width = pct + '%';
-    } else {
-      wrap.classList.remove('active');
+function renderLeaderboard(state){
+  const el=document.getElementById('leaderboard');
+  const medals=['🥇','🥈','🥉'];
+  const sorted=Object.entries(state.players)
+    .map(([id,p])=>({id,...p,net:(p.correctCount||0)-(p.wrongCount||0)}))
+    .sort((a,b)=>b.net-a.net).slice(0,3);
+  el.innerHTML=sorted.map((p,i)=>`
+    <div class="lb-entry">
+      <span class="lb-medal">${medals[i]||''}</span>
+      <span class="lb-name" style="color:${p.team==='green'?'var(--green)':'var(--orange)'}">${p.name}</span>
+      <span class="lb-score" style="color:${p.net>=0?'var(--green)':'var(--red)'}">${p.net>=0?'+':''}${p.net}</span>
+    </div>
+  `).join('');
+}
+
+function renderMyButton(state){
+  const btn=document.getElementById('my-btn');
+  const label=document.getElementById('my-btn-label');
+  const cd=document.getElementById('answer-countdown');
+  const pressed=state.buttonPressedBy;
+  const now=Date.now();
+
+  // Clear countdown timer if not my turn
+  if(answerCdTimer && pressed!==myId){ clearInterval(answerCdTimer); answerCdTimer=null; }
+
+  if(!state.currentQuestion){
+    btn.className='my-big-btn locked'; btn.textContent='🔒';
+    label.textContent='انتظر الهوست يختار حرف'; cd.textContent=''; return;
+  }
+  if(pressed===myId){
+    btn.className=`my-big-btn ${myTeam} flashing-${myTeam} pressed`; btn.textContent='⚡';
+    label.textContent='أنت ضغطت! جاوب الآن';
+    if(!answerCdTimer && state.answerTimerEnd){
+      let secs=Math.ceil((state.answerTimerEnd-Date.now())/1000);
+      cd.textContent=secs>0?secs:'';
+      cd.style.color=secs<=2?'var(--red)':'var(--green)';
+      answerCdTimer=setInterval(()=>{
+        secs=Math.ceil((state.answerTimerEnd-Date.now())/1000);
+        if(secs<=0){ cd.textContent='⏰'; cd.style.color='var(--red)'; clearInterval(answerCdTimer); answerCdTimer=null; }
+        else{ cd.textContent=secs; cd.style.color=secs<=2?'var(--red)':'var(--green)'; AudioEngine.playTick(); }
+      },1000);
     }
+    return;
+  }
+  if(pressed){
+    btn.className='my-big-btn locked'; btn.textContent='👂';
+    label.textContent=(gameState?.players[pressed]?.name||'شخص')+' يجاوب...';
+    // Show their countdown
+    if(state.answerTimerEnd){ const s=Math.ceil((state.answerTimerEnd-now)/1000); cd.textContent=s>0?s:'⏰'; }
+    else cd.textContent='';
+    return;
+  }
+  cd.textContent='';
+  const inTimeout=myTeam==='green'?state.greenTimeoutUntil>now:state.orangeTimeoutUntil>now;
+  const myPlayer=state.players[myId];
+  if(inTimeout||myPlayer?.muted){
+    btn.className=`my-big-btn timeout-state`; btn.textContent='⏱️';
+    const secs=Math.ceil(((myTeam==='green'?state.greenTimeoutUntil:state.orangeTimeoutUntil)-now)/1000);
+    label.textContent=`تايم أوت — ${secs}ث`; return;
+  }
+  // Opponent window — only opponent can press
+  if(state.opponentWindowOpen && state.opponentTeam && myTeam!==state.opponentTeam){
+    btn.className=`my-big-btn locked`; btn.textContent='⌛';
+    label.textContent='دور الفريق الثاني'; return;
+  }
+  if(!state.buttonOpen){
+    btn.className='my-big-btn locked'; btn.textContent='🔒';
+    label.textContent='الزر مغلق'; return;
+  }
+  btn.className=`my-big-btn ${myTeam}`;
+  btn.textContent='اضغط';
+  btn.style.fontSize='1.4rem';
+  label.textContent=state.opponentWindowOpen?'⚡ دورك!':'الزر مفتوح!';
+}
+
+function renderTimeouts(state){
+  const now=Date.now();
+  ['green','orange'].forEach(t=>{
+    const until=state[t+'TimeoutUntil'];
+    const wrap=document.getElementById(t+'-timeout-wrap');
+    const bar=document.getElementById(t+'-timeout-bar');
+    if(until>now){ wrap.classList.add('active'); bar.style.width=((until-now)/10000*100)+'%'; }
+    else wrap.classList.remove('active');
   });
 }
 
-function renderHintVote(state) {
-  const btn = document.getElementById('hint-vote-btn');
-  if (state.hintActive && !state.hintUnlocked) {
-    btn.classList.add('active');
-    const myVote = state.hintVotes && state.hintVotes[myId];
-    btn.textContent = myVote ? '✅ صوّتت للتلميح' : '💡 تصويت للتلميح';
-    btn.disabled = !!myVote;
-    if (myVote) btn.classList.add('voted');
-  } else {
-    btn.classList.remove('active');
-    btn.classList.remove('voted');
-    hintVoted = false;
-  }
+function renderVoteButtons(state){
+  const hBtn=document.getElementById('hint-vote-btn');
+  const cBtn=document.getElementById('cancel-vote-btn');
+  if(state.hintActive&&!state.hintUnlocked){
+    hBtn.classList.add('active');
+    hBtn.textContent=state.hintVotes?.[myId]?'✅ صوّتت للتلميح':'💡 تصويت للتلميح';
+    if(state.hintVotes?.[myId]) hBtn.classList.add('voted');
+    else hBtn.classList.remove('voted');
+  } else hBtn.classList.remove('active');
+  if(state.cancelVoteActive){
+    cBtn.classList.add('active');
+    cBtn.textContent=state.cancelVotes?.[myId]?'✅ صوّتت للإلغاء':'❌ تصويت لإلغاء السؤال';
+    if(state.cancelVotes?.[myId]) cBtn.classList.add('voted');
+    else cBtn.classList.remove('voted');
+  } else { cBtn.classList.remove('active'); cancelVoted=false; }
 }
 
-function pressMyButton() {
-  if (!gameState?.buttonOpen || gameState.buttonPressedBy) return;
+function pressMyButton(){
+  if(!gameState?.buttonOpen||gameState.buttonPressedBy) return;
   AudioEngine.resume();
   socket.emit('pressButton');
 }
 
-function voteHint() {
-  if (hintVoted) return;
-  hintVoted = true;
-  socket.emit('voteHint');
-}
+function voteHint(){ if(hintVoted) return; hintVoted=true; socket.emit('voteHint'); }
+function voteCancelQ(){ if(cancelVoted) return; cancelVoted=true; socket.emit('voteCancelQuestion'); }
 
-// Overlay
-function showOverlay(pressedId, playerName, team) {
-  const overlay = document.getElementById('overlay');
-  const countdownEl = document.getElementById('overlay-countdown');
-  const playerEl = document.getElementById('overlay-player-name');
-  const teamsEl = document.getElementById('overlay-teams');
-
-  overlay.classList.add('active');
-  countdownEl.style.color = team === 'green' ? 'var(--green)' : 'var(--orange)';
-  playerEl.textContent = playerName;
-  playerEl.style.color = team === 'green' ? 'var(--green)' : 'var(--orange)';
-
-  // Build overlay teams view
-  if (gameState) {
-    const greenPs = Object.entries(gameState.players).filter(([,p]) => p.team === 'green');
-    const orangePs = Object.entries(gameState.players).filter(([,p]) => p.team === 'orange');
-    teamsEl.innerHTML = `
-      <div class="overlay-team-col">
-        <div style="color:var(--green);font-size:0.8rem;margin-bottom:4px">${gameState.teamNames.green}</div>
-        ${greenPs.map(([id,p]) => `
-          <button class="overlay-mini-btn" style="background:${id===pressedId?'var(--green)':'#2a2a2a'};color:${id===pressedId?'#fff':'#555'}">
-            ${p.name[0]}
-          </button>
-        `).join('')}
-      </div>
-      <div style="font-size:2rem;align-self:center;color:var(--muted)">VS</div>
-      <div class="overlay-team-col">
-        <div style="color:var(--orange);font-size:0.8rem;margin-bottom:4px">${gameState.teamNames.orange}</div>
-        ${orangePs.map(([id,p]) => `
-          <button class="overlay-mini-btn" style="background:${id===pressedId?'var(--orange)':'#2a2a2a'};color:${id===pressedId?'#fff':'#555'}">
-            ${p.name[0]}
-          </button>
-        `).join('')}
-      </div>
-    `;
-  }
-
-  let count = 3;
-  countdownEl.textContent = count;
-  if (overlayTimer) clearInterval(overlayTimer);
-  overlayTimer = setInterval(() => {
-    count--;
-    if (count <= 0) {
-      clearInterval(overlayTimer);
-      AudioEngine.playExpire();
-      countdownEl.textContent = '⌛';
-      setTimeout(() => overlay.classList.remove('active'), 1500);
-    } else {
-      AudioEngine.playTick();
-      countdownEl.textContent = count;
-    }
-  }, 1000);
-}
-
-function showWinOverlay(winner) {
-  const ov = document.getElementById('win-overlay');
-  const el = document.getElementById('win-team-name');
+// ─── OVERLAY (someone pressed) ───────────────────────────────────────────────
+function showOverlay(pressedId,playerName,team){
+  const ov=document.getElementById('overlay');
+  const nameEl=document.getElementById('overlay-player-name');
+  const cdEl=document.getElementById('overlay-countdown');
+  ov.style.background=team==='green'?'rgba(240,253,244,.97)':'rgba(255,247,237,.97)';
+  nameEl.textContent=playerName;
+  nameEl.style.color=team==='green'?'var(--green)':'var(--orange)';
+  cdEl.style.color=team==='green'?'var(--green)':'var(--orange)';
   ov.classList.add('active');
-  el.textContent = gameState?.teamNames[winner] || (winner === 'green' ? 'الفريق الأخضر' : 'الفريق البرتقالي');
-  el.style.color = winner === 'green' ? 'var(--green)' : 'var(--orange)';
+  let n=5; cdEl.textContent=n;
+  if(overlayTimer) clearInterval(overlayTimer);
+  overlayTimer=setInterval(()=>{
+    n--;
+    if(n<=0){ clearInterval(overlayTimer); AudioEngine.playExpire(); cdEl.textContent='⏰'; setTimeout(()=>ov.classList.remove('active'),1800); }
+    else{ AudioEngine.playTick(); cdEl.textContent=n; }
+  },1000);
 }
 
-// Audio state
-function applyAudioState(state) {
-  const me = state.players[myId];
-  if (!me || !localStream) return;
-  localStream.getAudioTracks().forEach(t => { t.enabled = !me.muted; });
-  // Deafen: mute remote audio
-  Object.entries(peers).forEach(([id, peer]) => {
-    const remoteAudio = document.getElementById('audio-' + id);
-    if (remoteAudio) remoteAudio.muted = !!me.deafened;
+// ─── JUDGMENT FLASH ──────────────────────────────────────────────────────────
+socket.on('judgeResult',({correct,playerName})=>{
+  if(correct){
+    AudioEngine.playCorrect();
+    showJudgmentFlash('✅','إجابة صحيحة! 🎉','var(--green)','var(--green-light)');
+  } else {
+    AudioEngine.playWrong();
+    showJudgmentFlash('❌','إجابة خاطئة!','var(--red)','var(--red-light)');
+  }
+});
+
+function showJudgmentFlash(icon,text,color,bg){
+  const el=document.getElementById('judgment-flash');
+  const ic=document.getElementById('judgment-icon');
+  const tx=document.getElementById('judgment-text');
+  el.style.background=bg;
+  ic.textContent=icon; tx.textContent=text; tx.style.color=color;
+  el.classList.add('active');
+  setTimeout(()=>el.classList.remove('active'),1600);
+}
+
+// ─── WIN OVERLAY ──────────────────────────────────────────────────────────────
+function showWinOverlay(winner){
+  const ov=document.getElementById('win-overlay');
+  const el=document.getElementById('win-team-name');
+  ov.classList.add('active');
+  el.textContent=gameState?.teamNames[winner]||(winner==='green'?'الأخضر':'البرتقالي');
+  el.style.color=winner==='green'?'var(--green)':'var(--orange)';
+  // MVP
+  if(gameState){
+    const sorted=Object.entries(gameState.players)
+      .map(([id,p])=>({id,...p,net:(p.correctCount||0)-(p.wrongCount||0)}))
+      .sort((a,b)=>b.net-a.net);
+    if(sorted[0]){
+      document.getElementById('mvp-name').textContent='⭐ '+sorted[0].name;
+      document.getElementById('mvp-card').style.display='block';
+    }
+  }
+}
+
+// ─── AUDIO / TIMER LOOP ────────────────────────────────────────────────────
+setInterval(()=>{ if(gameState){ renderTimeouts(gameState); renderMyButton(gameState); renderQuestionTimer(gameState); } },200);
+
+// ─── AUDIO STATE ──────────────────────────────────────────────────────────
+function applyAudioState(state){
+  const me=state.players[myId];
+  if(!me||!localStream) return;
+  localStream.getAudioTracks().forEach(t=>{ t.enabled=!me.muted; });
+  Object.entries(peers).forEach(([id])=>{
+    const audio=document.getElementById('audio-'+id);
+    if(audio) audio.muted=!!me.deafened;
   });
 }
 
-// Interval to update timeout bars
-setInterval(() => {
-  if (gameState) renderTimeouts(gameState);
-}, 100);
+// ─── WEBRTC ───────────────────────────────────────────────────────────────
+socket.on('webrtc-offer',  async({from,offer})=>{ if(!localStream)return; const pc=createPeer(from); await pc.setRemoteDescription(offer); const ans=await pc.createAnswer(); await pc.setLocalDescription(ans); socket.emit('webrtc-answer',{to:from,answer:ans}); });
+socket.on('webrtc-answer', async({from,answer})=>{ await peers[from]?.setRemoteDescription(answer); });
+socket.on('webrtc-ice',    ({from,candidate})=>{ peers[from]?.addIceCandidate(candidate); });
 
-// WebRTC setup
-socket.on('connect', () => { myId = socket.id; });
-socket.on('webrtc-offer', async ({ from, offer }) => {
-  if (!localStream) return;
-  const pc = createPeer(from);
-  await pc.setRemoteDescription(offer);
-  const answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
-  socket.emit('webrtc-answer', { to: from, answer });
-});
-socket.on('webrtc-answer', async ({ from, answer }) => {
-  await peers[from]?.setRemoteDescription(answer);
-});
-socket.on('webrtc-ice', ({ from, candidate }) => {
-  peers[from]?.addIceCandidate(candidate);
-});
-
-function createPeer(id) {
-  if (peers[id]) { peers[id].close(); }
-  const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-  peers[id] = pc;
-  if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-  pc.onicecandidate = e => { if (e.candidate) socket.emit('webrtc-ice', { to: id, candidate: e.candidate }); };
-  pc.ontrack = e => {
-    let audio = document.getElementById('audio-' + id);
-    if (!audio) {
-      audio = document.createElement('audio');
-      audio.id = 'audio-' + id;
-      audio.autoplay = true;
-      document.body.appendChild(audio);
-    }
-    audio.srcObject = e.streams[0];
-  };
+function createPeer(id){
+  if(peers[id]) peers[id].close();
+  const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+  peers[id]=pc;
+  if(localStream) localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
+  pc.onicecandidate=e=>{ if(e.candidate) socket.emit('webrtc-ice',{to:id,candidate:e.candidate}); };
+  pc.ontrack=e=>{ let a=document.getElementById('audio-'+id); if(!a){a=document.createElement('audio');a.id='audio-'+id;a.autoplay=true;document.body.appendChild(a);} a.srcObject=e.streams[0]; };
   return pc;
 }
 
-async function startPeerConnections() {
-  if (!gameState || !localStream) return;
-  for (const [id] of Object.entries(gameState.players)) {
-    if (id !== myId && !peers[id]) {
-      const pc = createPeer(id);
-      const offer = await pc.createOffer();
+async function startPeerConnections(){
+  if(!gameState||!localStream) return;
+  for(const [id] of Object.entries(gameState.players)){
+    if(id!==myId&&!peers[id]){
+      const pc=createPeer(id);
+      const offer=await pc.createOffer();
       await pc.setLocalDescription(offer);
-      socket.emit('webrtc-offer', { to: id, offer });
+      socket.emit('webrtc-offer',{to:id,offer});
     }
   }
 }
-
-socket.on('gameState', (state) => {
-  // Try to connect to new players
-  setTimeout(startPeerConnections, 500);
-});
 </script>
 </body>
 </html>
