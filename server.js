@@ -10,7 +10,16 @@ const io = new Server(server, { cors: { origin: '*' } });
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public', 'host.html')));
 
-// ── AI Question Generator (Node.js fetch — no Python needed) ────────────────
+// ===== CONSTANTS =====
+const ARABIC_LETTERS = ['أ','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و'];
+const HOST_CODE          = process.env.HOST_CODE || 'Tty3201';
+const BUTTON_ANSWER_TIME = 5000;
+const TEAM_TIMEOUT_MS    = 10000;
+const HINT_AFTER_MS      = 30000;
+const CANCEL_VOTE_AFTER  = 2 * 60 * 1000;
+const QUESTION_EXPIRE    = 5 * 60 * 1000;
+
+// ===== AI QUESTION GENERATOR (Node.js fetch) =====
 const questionCache = {};
 
 const LETTER_EXAMPLES = {
@@ -43,19 +52,31 @@ const LETTER_EXAMPLES = {
   'و':'وليد، وهران، ورد',
 };
 
-const CAT_DESC  = {'كروي':'كرة القدم: لاعبون، أندية، مدربون، بطولات','ديني':'إسلامية: أنبياء، صحابة، سور، أحداث','علوم':'طبيعية: حيوانات، نباتات، ظواهر','جغرافيا':'جغرافيا: دول، مدن، جبال، أنهار','علمي':'علم وتقنية: علماء، اختراعات، مصطلحات','ثقافي':'ثقافة عامة: شخصيات، أحداث، فنون','عشوائي':'متنوع من جميع المجالات'};
-const DIFF_DESC = {'سهل':'مشهورة جداً يعرفها الجميع','متوسط':'معروفة نسبياً','صعب':'نادرة تحتاج معرفة عميقة'};
+const CAT_DESC  = {
+  'كروي':'كرة القدم: لاعبون، أندية، مدربون، بطولات',
+  'ديني':'إسلامية: أنبياء، صحابة، سور، أحداث',
+  'علوم':'طبيعية: حيوانات، نباتات، ظواهر',
+  'جغرافيا':'جغرافيا: دول، مدن، جبال، أنهار',
+  'علمي':'علم وتقنية: علماء، اختراعات، مصطلحات',
+  'ثقافي':'ثقافة عامة: شخصيات، أحداث، فنون',
+  'عشوائي':'متنوع من جميع المجالات',
+};
+const DIFF_DESC = {
+  'سهل':'مشهورة جداً يعرفها الجميع',
+  'متوسط':'معروفة نسبياً',
+  'صعب':'نادرة تحتاج معرفة عميقة',
+};
 
 function makeFallback(letter, count) {
   const ex = (LETTER_EXAMPLES[letter] || letter+'...').split('،').map(s=>s.trim());
   return [
     {text:`اذكر شخصاً مشهوراً اسمه يبدأ بـ«${letter}»`, answer:ex[0]||letter+'...', hint:'شخصية رياضية أو تاريخية', category:'ثقافي', difficulty:'سهل'},
     {text:`اذكر دولة أو مدينة تبدأ بـ«${letter}»`,       answer:ex[1]||letter+'...', hint:'موقع جغرافي على الخريطة', category:'جغرافيا', difficulty:'سهل'},
-    {text:`اذكر حيواناً يبدأ بـ«${letter}»`,             answer:ex[2]||letter+'...', hint:'كائن حي من الطبيعة',       category:'علوم', difficulty:'سهل'},
+    {text:`اذكر حيواناً يبدأ بـ«${letter}»`,             answer:ex[2]||letter+'...', hint:'كائن حي من الطبيعة',       category:'علوم',    difficulty:'سهل'},
   ].slice(0, count);
 }
 
-async function generateQuestionsAI(letter, category = 'عشوائي', difficulty = 'متوسط', count = 3) {
+async function generateQuestionsAI(letter, category='عشوائي', difficulty='متوسط', count=3) {
   const cacheKey = `${letter}-${category}-${difficulty}`;
   if (questionCache[cacheKey]) return questionCache[cacheKey];
 
@@ -63,7 +84,7 @@ async function generateQuestionsAI(letter, category = 'عشوائي', difficulty
   if (!apiKey) return makeFallback(letter, count);
 
   const ex       = LETTER_EXAMPLES[letter] || letter+'...';
-  const catDesc  = CAT_DESC[category]  || 'متنوع';
+  const catDesc  = CAT_DESC[category]   || 'متنوع';
   const diffDesc = DIFF_DESC[difficulty] || 'معروفة';
 
   const prompt = `اصنع ${count} أسئلة لحرف «${letter}».
@@ -73,7 +94,7 @@ async function generateQuestionsAI(letter, category = 'عشوائي', difficulty
 
 قواعد صارمة:
 1. الإجابة (answer) تبدأ حصرياً بحرف «${letter}» — لا استثناءات.
-2. السؤال (text) محدد ومباشر مثل: "نجم كرة قدم برازيلي مشهور" وليس "اذكر كلمة".
+2. السؤال (text) محدد ومباشر مثل "نجم كرة قدم برازيلي مشهور" وليس "اذكر كلمة".
 3. التلميح (hint) لا يحتوي على الإجابة.
 4. الإخراج: مصفوفة JSON فقط بدون أي نص خارجها وبدون markdown.
 
@@ -95,18 +116,14 @@ async function generateQuestionsAI(letter, category = 'عشوائي', difficulty
         messages: [{ role: 'user', content: prompt }],
       }),
     });
-
     const data = await res.json();
     let raw = data?.content?.[0]?.text?.trim() || '';
-
-    // Strip markdown fences if any
     if (raw.includes('```')) {
       for (const part of raw.split('```')) {
-        const p = part.replace(/^json/, '').trim();
+        const p = part.replace(/^json/,'').trim();
         if (p.startsWith('[')) { raw = p; break; }
       }
     }
-
     const questions = JSON.parse(raw);
     if (Array.isArray(questions) && questions.length) {
       const valid = questions.filter(q => q?.answer?.trim().startsWith(letter));
@@ -114,38 +131,220 @@ async function generateQuestionsAI(letter, category = 'عشوائي', difficulty
       questionCache[cacheKey] = result;
       return result;
     }
-  } catch (e) {
-    console.error('AI generate error:', e.message);
+  } catch(e) {
+    console.error('AI error:', e.message);
   }
-
   return makeFallback(letter, count);
 }
 
 function clearQuestionCache() { Object.keys(questionCache).forEach(k => delete questionCache[k]); }
 
-// ─── PRE-GENERATION (Node.js — no Python) ───────────────────────────────────
+// ─── PRE-GENERATION ──────────────────────────────────────────────────────────
 async function preGenerateAllLetters(hostSocketId) {
   if (!gameState.grid.length) return;
   const letters = [...new Set(gameState.grid.flat().filter(c=>!c.owner).map(c=>c.letter))];
   if (!letters.length) return;
-
   const pref = gameState.aiPreferences || {};
   const cat  = pref.category  || 'عشوائي';
   const diff = pref.difficulty || 'متوسط';
-
   const getHost = () => [...io.sockets.sockets.values()].find(s=>s.id===hostSocketId);
   getHost()?.emit('preGenStart', { total: letters.length });
-
   let done = 0;
-  // توليد 2 حروف بالتوازي لتجنب rate limiting
   for (let i = 0; i < letters.length; i += 2) {
-    const batch = letters.slice(i, i + 2);
-    await Promise.all(batch.map(letter => generateQuestionsAI(letter, cat, diff, 3)));
+    const batch = letters.slice(i, i+2);
+    await Promise.all(batch.map(l => generateQuestionsAI(l, cat, diff, 3)));
     done += batch.length;
     getHost()?.emit('preGenProgress', { done, total: letters.length });
   }
-
   getHost()?.emit('preGenDone', { total: letters.length });
+}
+
+// ===== GAME STATE =====
+let gameState = {
+  phase: 'lobby',
+  gridSize: 5,
+  grid: [],
+  teamNames: { green: 'الفريق الأخضر', orange: 'الفريق البرتقالي' },
+  players: {},
+  host: null,
+  selectedCell: null,
+  currentQuestion: null,
+  currentQuestionData: null,
+  aiAlternatives: [],
+  aiPreferences: { category: 'عشوائي', difficulty: 'متوسط' },
+  buttonOpen: false,
+  buttonPressedBy: null,
+  buttonPressedAt: null,
+  answerWindowOpen: false,
+  answerTimerEnd: null,
+  greenTimeoutUntil: 0,
+  orangeTimeoutUntil: 0,
+  wins: { green: 0, orange: 0 },
+  hintVotes: {},
+  hintActive: false,
+  hintUnlocked: false,
+  hintTimerHandle: null,
+  questionTimerHandle: null,
+  cancelVoteTimerHandle: null,
+  answerTimerHandle: null,
+  opponentTimerHandle: null,
+  lastWrongTeam: null,
+  opponentWindowOpen: false,
+  opponentTeam: null,
+  opponentTimerEnd: null,
+  inviteCode: 'حسن',
+  timeoutGiven: {},
+  cancelVoteActive: false,
+  cancelVotes: {},
+  playerSurveys: {},
+  questionStartTime: null,
+};
+
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function generateGrid(size) {
+  let pool = [];
+  while (pool.length < size * size)
+    pool = pool.concat([...ARABIC_LETTERS].sort(() => Math.random() - 0.5));
+  pool = pool.slice(0, size * size).sort(() => Math.random() - 0.5);
+  const grid = [];
+  let i = 0;
+  for (let r = 0; r < size; r++) {
+    grid.push([]);
+    for (let c = 0; c < size; c++)
+      grid[r].push({ letter: pool[i++], owner: null });
+  }
+  return grid;
+}
+
+function getTeamCount(t) { return Object.values(gameState.players).filter(p => p.team === t).length; }
+
+function getHexNeighbors(r, c, size) {
+  const odd = c % 2 === 1;
+  const dirs = odd
+    ? [[-1,0],[1,0],[0,-1],[1,-1],[0,1],[1,1]]
+    : [[-1,0],[1,0],[-1,-1],[0,-1],[-1,1],[0,1]];
+  return dirs.map(([dr,dc]) => [r+dr, c+dc])
+             .filter(([nr,nc]) => nr>=0 && nr<size && nc>=0 && nc<size);
+}
+
+function checkWin() {
+  const size = gameState.gridSize, grid = gameState.grid;
+  function bfs(team, starts, fn) {
+    const vis = Array.from({length:size}, () => Array(size).fill(false));
+    const q = starts.filter(([r,c]) => grid[r][c].owner === team);
+    if (!q.length) return false;
+    q.forEach(([r,c]) => vis[r][c] = true);
+    let h = 0;
+    while (h < q.length) {
+      const [r,c] = q[h++];
+      if (fn(r,c)) return true;
+      for (const [nr,nc] of getHexNeighbors(r,c,size))
+        if (!vis[nr][nc] && grid[nr][nc].owner === team) { vis[nr][nc]=true; q.push([nr,nc]); }
+    }
+    return false;
+  }
+  if (bfs('green',  Array.from({length:size},(_,r)=>[r,size-1]), (_,c)=>c===0))     return 'green';
+  if (bfs('orange', Array.from({length:size},(_,c)=>[0,c]),      (r)=>r===size-1))  return 'orange';
+  return null;
+}
+
+function clearAllTimers() {
+  ['hintTimerHandle','questionTimerHandle','cancelVoteTimerHandle','answerTimerHandle','opponentTimerHandle']
+    .forEach(k => { if (gameState[k]) { clearTimeout(gameState[k]); gameState[k]=null; } });
+}
+
+function resetButtonState() {
+  if (gameState.answerTimerHandle)   { clearTimeout(gameState.answerTimerHandle);   gameState.answerTimerHandle=null; }
+  if (gameState.opponentTimerHandle) { clearTimeout(gameState.opponentTimerHandle); gameState.opponentTimerHandle=null; }
+  gameState.buttonOpen=false; gameState.buttonPressedBy=null; gameState.buttonPressedAt=null;
+  gameState.answerWindowOpen=false; gameState.answerTimerEnd=null;
+  gameState.opponentWindowOpen=false; gameState.opponentTeam=null; gameState.opponentTimerEnd=null;
+  Object.values(gameState.players).forEach(p => { p.muted=false; p.deafened=false; });
+}
+
+function resetGameState() {
+  clearAllTimers();
+  gameState.phase='lobby';
+  gameState.grid=generateGrid(gameState.gridSize);
+  gameState.selectedCell=null; gameState.currentQuestion=null;
+  gameState.currentQuestionData=null; gameState.questionStartTime=null;
+  resetButtonState();
+  gameState.greenTimeoutUntil=0; gameState.orangeTimeoutUntil=0;
+  gameState.hintVotes={}; gameState.hintActive=false; gameState.hintUnlocked=false;
+  gameState.lastWrongTeam=null; gameState.timeoutGiven={};
+  gameState.cancelVoteActive=false; gameState.cancelVotes={};
+  Object.values(gameState.players).forEach(p => { p.score=0; p.correctCount=0; p.wrongCount=0; });
+}
+
+function broadcastState() { io.emit('gameState', sanitizeState()); }
+
+function sanitizeState() {
+  return {
+    phase: gameState.phase, gridSize: gameState.gridSize, grid: gameState.grid,
+    teamNames: gameState.teamNames, players: gameState.players,
+    selectedCell: gameState.selectedCell, currentQuestion: gameState.currentQuestion,
+    currentQuestionData: gameState.currentQuestionData,
+    buttonOpen: gameState.buttonOpen, buttonPressedBy: gameState.buttonPressedBy,
+    answerWindowOpen: gameState.answerWindowOpen, answerTimerEnd: gameState.answerTimerEnd,
+    greenTimeoutUntil: gameState.greenTimeoutUntil, orangeTimeoutUntil: gameState.orangeTimeoutUntil,
+    wins: gameState.wins, hintVotes: gameState.hintVotes,
+    hintActive: gameState.hintActive, hintUnlocked: gameState.hintUnlocked,
+    lastWrongTeam: gameState.lastWrongTeam,
+    opponentWindowOpen: gameState.opponentWindowOpen, opponentTeam: gameState.opponentTeam,
+    opponentTimerEnd: gameState.opponentTimerEnd,
+    inviteCode: gameState.inviteCode,
+    cancelVoteActive: gameState.cancelVoteActive, cancelVotes: gameState.cancelVotes,
+    questionStartTime: gameState.questionStartTime,
+  };
+}
+
+function applyWrongAnswer(wrongTeam) {
+  const now = Date.now();
+  const other = wrongTeam === 'green' ? 'orange' : 'green';
+  if (gameState.lastWrongTeam && gameState.lastWrongTeam !== wrongTeam) {
+    // الفريق الثاني أجاب غلط — بدون تايم أوت، فتح للكل
+    gameState.lastWrongTeam=null; gameState.greenTimeoutUntil=0; gameState.orangeTimeoutUntil=0;
+    gameState.opponentWindowOpen=false; gameState.opponentTeam=null; gameState.opponentTimerEnd=null;
+    if (gameState.opponentTimerHandle) { clearTimeout(gameState.opponentTimerHandle); gameState.opponentTimerHandle=null; }
+    gameState.buttonOpen=true; gameState.buttonPressedBy=null;
+    gameState.answerWindowOpen=false; gameState.answerTimerEnd=null;
+    Object.values(gameState.players).forEach(p => { p.muted=false; p.deafened=false; });
+  } else if (!gameState.timeoutGiven[wrongTeam]) {
+    // الفريق الأول يغلط — تايم أوت مرة واحدة فقط
+    gameState.timeoutGiven[wrongTeam]=true;
+    gameState.lastWrongTeam=wrongTeam;
+    const until = now + TEAM_TIMEOUT_MS;
+    if (wrongTeam==='green') gameState.greenTimeoutUntil=until;
+    else gameState.orangeTimeoutUntil=until;
+    Object.values(gameState.players).forEach(p => {
+      if (p.team===wrongTeam) { p.muted=true; p.deafened=true; }
+      else { p.muted=false; p.deafened=false; }
+    });
+    gameState.opponentWindowOpen=true; gameState.opponentTeam=other;
+    gameState.opponentTimerEnd=now+TEAM_TIMEOUT_MS;
+    gameState.buttonOpen=true; gameState.buttonPressedBy=null;
+    gameState.answerWindowOpen=false; gameState.answerTimerEnd=null;
+    if (gameState.opponentTimerHandle) clearTimeout(gameState.opponentTimerHandle);
+    gameState.opponentTimerHandle=setTimeout(() => {
+      gameState.opponentWindowOpen=false; gameState.opponentTeam=null; gameState.opponentTimerEnd=null;
+      gameState.lastWrongTeam=null; gameState.buttonOpen=true; gameState.buttonPressedBy=null;
+      gameState.answerWindowOpen=false; gameState.answerTimerEnd=null;
+      gameState.greenTimeoutUntil=0; gameState.orangeTimeoutUntil=0;
+      Object.values(gameState.players).forEach(p => { p.muted=false; p.deafened=false; });
+      broadcastState();
+    }, TEAM_TIMEOUT_MS);
+    setTimeout(() => {
+      if (wrongTeam==='green') gameState.greenTimeoutUntil=0; else gameState.orangeTimeoutUntil=0;
+      Object.values(gameState.players).forEach(p => { if (p.team===wrongTeam) { p.muted=false; p.deafened=false; } });
+      broadcastState();
+    }, TEAM_TIMEOUT_MS);
+  } else {
+    // نفس الفريق يغلط مرة ثانية — بدون تايم أوت، فتح للكل
+    gameState.lastWrongTeam=null; gameState.buttonOpen=true; gameState.buttonPressedBy=null;
+    gameState.answerWindowOpen=false; gameState.answerTimerEnd=null;
+    Object.values(gameState.players).forEach(p => { p.muted=false; p.deafened=false; });
+  }
 }
 
 // ─── SOCKET EVENTS ──────────────────────────────────────────────────────────
