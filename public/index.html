@@ -377,6 +377,9 @@ socket.on('joinOk', () => {
   addLine('');
   addLine('> ✅ تم الانضمام بنجاح!', 'c-yellow');
   addLine('> ⏳ في انتظار الهوست يبدأ اللعبة...', 'c-dim');
+  sessionStorage.setItem('playerName', playerName);
+  sessionStorage.setItem('playerTeam', playerTeam);
+  sessionStorage.setItem('inviteCode', savedCode);
 });
 
 socket.on('joinFail', msg => {

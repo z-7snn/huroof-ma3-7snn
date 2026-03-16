@@ -544,14 +544,44 @@ async function initMic() {
   } catch (e) { console.warn('Mic failed:', e); }
 }
 
-socket.on('connect', () => { myId = socket.id; initMic(); });
+// Re-join automatically using saved session data
+socket.on('connect', () => {
+  myId = socket.id;
+  initMic();
+
+  const savedName = sessionStorage.getItem('playerName');
+  const savedTeam = sessionStorage.getItem('playerTeam');
+  const savedCode = sessionStorage.getItem('inviteCode');
+
+  if (savedName && savedTeam && savedCode) {
+    myName = savedName;
+    myTeam = savedTeam;
+    document.getElementById('my-btn').className = 'my-button ' + myTeam;
+    document.getElementById('lobby-msg').textContent = `⏳ مرحباً ${myName}، في انتظار الهوست...`;
+    socket.emit('playerJoin', { name: savedName, team: savedTeam, inviteCode: savedCode });
+  } else {
+    // No session data — redirect back to login
+    window.location.href = '/';
+  }
+});
+
+socket.on('joinOk', () => {
+  // Successfully re-joined, wait for gameState
+});
+
+socket.on('joinFail', () => {
+  // Session expired or team full — go back
+  sessionStorage.clear();
+  window.location.href = '/';
+});
 
 socket.on('gameState', (state) => {
   gameState = state;
-  if (state.players[myId]) {
-    myTeam = state.players[myId].team;
-    myName = state.players[myId].name;
-    document.getElementById('my-btn').className = 'my-button ' + myTeam;
+  // Keep our identity from sessionStorage, just verify we're in the player list
+  if (!myTeam) {
+    myTeam = sessionStorage.getItem('playerTeam');
+    myName = sessionStorage.getItem('playerName');
+    if (myTeam) document.getElementById('my-btn').className = 'my-button ' + myTeam;
   }
   renderGame(state);
 });
