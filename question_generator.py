@@ -6,7 +6,7 @@ question_generator.py — حروف مع حسن
 import sys, json, os, urllib.request, time
 
 API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-MODEL   = "claude-haiku-4-5-20251001"
+MODEL   = "claude-sonnet-4-6"
 
 LETTER_EXAMPLES = {
   'أ':'أسد، أرجنتين، أبوظبي، أحمد، أرسنال',

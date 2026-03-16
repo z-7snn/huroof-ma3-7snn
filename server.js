@@ -576,6 +576,9 @@ io.on('connection', (socket) => {
     const player=gameState.players[pid];
     if (gameState.answerTimerHandle) { clearTimeout(gameState.answerTimerHandle); gameState.answerTimerHandle=null; }
     if (gameState.opponentTimerHandle) { clearTimeout(gameState.opponentTimerHandle); gameState.opponentTimerHandle=null; }
+    // أرسل النتيجة لكل اللاعبين فوراً قبل أي تعديل
+    io.emit('judgeResult', { correct, playerName: player.name, team: player.team });
+
     if (correct) {
       player.score++; player.correctCount++;
       const {row,col}=gameState.selectedCell;

@@ -153,11 +153,11 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
 .ov-cd{font-size:9rem;font-weight:900;line-height:1;}
 .ov-label{font-size:1rem;font-weight:700;color:var(--muted);}
 
-#judgment-flash{display:none;position:fixed;inset:0;z-index:1500;align-items:center;justify-content:center;flex-direction:column;gap:8px;}
-#judgment-flash.active{display:flex;animation:jfIn .15s ease;}
-@keyframes jfIn{from{opacity:0}to{opacity:1}}
-.jf-icon{font-size:7rem;}
-.jf-text{font-size:2rem;font-weight:900;}
+#judgment-flash{display:none;position:fixed;inset:0;z-index:1500;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+#judgment-flash.active{display:flex;animation:jfIn .2s cubic-bezier(.34,1.56,.64,1);}
+@keyframes jfIn{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+.jf-icon{font-size:9rem;line-height:1;filter:drop-shadow(0 4px 20px rgba(0,0,0,.15));}
+.jf-text{font-size:3rem;font-weight:900;text-align:center;}
 
 #win-overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,.97);z-index:2000;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
 #win-overlay.active{display:flex;}
@@ -290,7 +290,19 @@ socket.on('roundWin',winner=>{ AudioEngine.playWin(); showWinOverlay(winner); })
 socket.on('hintApproved',()=>{ AudioEngine.playHint(); });
 socket.on('questionExpired',()=>{ AudioEngine.playExpire(); showJudgmentFlash('⏰','انتهى وقت السؤال!','var(--red)','var(--red-light)'); });
 socket.on('questionCancelled',()=>{ showJudgmentFlash('🚫','تم إلغاء السؤال','var(--red)','var(--red-light)'); });
-socket.on('judgeResult',({correct})=>{ if(correct){AudioEngine.playCorrect();showJudgmentFlash('✅','إجابة صحيحة!','var(--green)','var(--green-light)');}else{AudioEngine.playWrong();showJudgmentFlash('❌','إجابة خاطئة!','var(--red)','var(--red-light)');} });
+socket.on('judgeResult',({correct, playerName})=>{
+  // أغلق الـ overlay فوراً بدون انتظار
+  if(overlayTimer){ clearInterval(overlayTimer); overlayTimer=null; }
+  document.getElementById('overlay').classList.remove('active');
+  // أظهر النتيجة بشكل واضح وكبير
+  if(correct){
+    AudioEngine.playCorrect();
+    showJudgmentFlash('✅','صــــح! 🎉', playerName, 'var(--green)','var(--green-light)');
+  } else {
+    AudioEngine.playWrong();
+    showJudgmentFlash('❌','غلـــط! ❌', playerName, 'var(--red)','var(--red-light)');
+  }
+});
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────
 function renderGame(state){
@@ -517,14 +529,23 @@ function showOverlay(pressedId,playerName,team){
   },1000);
 }
 
-function showJudgmentFlash(icon,text,color,bg){
+function showJudgmentFlash(icon, text, playerName, color, bg){
   const el=document.getElementById('judgment-flash');
   el.style.background=bg;
   document.getElementById('jf-icon').textContent=icon;
   document.getElementById('jf-text').textContent=text;
   document.getElementById('jf-text').style.color=color;
+  // اسم اللاعب
+  let nameEl=document.getElementById('jf-player');
+  if(!nameEl){
+    nameEl=document.createElement('div');
+    nameEl.id='jf-player';
+    nameEl.style.cssText='font-size:1.1rem;font-weight:700;color:var(--muted);margin-top:4px;';
+    el.appendChild(nameEl);
+  }
+  nameEl.textContent = playerName || '';
   el.classList.add('active');
-  setTimeout(()=>el.classList.remove('active'),1600);
+  setTimeout(()=>el.classList.remove('active'), 2200);
 }
 
 function showWinOverlay(winner){
