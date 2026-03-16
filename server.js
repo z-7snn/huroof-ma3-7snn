@@ -16,17 +16,16 @@ const ARABIC_LETTERS = ['أ','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','
 const HOST_CODE = 'Tty3201';
 
 let gameState = {
-  phase: 'lobby', // lobby | playing | roundEnd
+  phase: 'lobby',
   gridSize: 5,
   grid: [],
   teamNames: { green: 'الفريق الأخضر', orange: 'الفريق البرتقالي' },
-  players: {}, // socketId -> { name, team, score, muted, deafened }
+  players: {},
   host: null,
-  selectedCell: null, // { row, col }
+  selectedCell: null,
   currentQuestion: null,
   buttonOpen: false,
-  buttonPressedBy: null, // socketId
-  buttonPressedAt: null,
+  buttonPressedBy: null,
   greenTimeoutUntil: 0,
   orangeTimeoutUntil: 0,
   wins: { green: 0, orange: 0 },
@@ -36,18 +35,27 @@ let gameState = {
   hintTimer: null,
   lastWrongTeam: null,
   bothWrong: false,
+  inviteCode: 'حسن', // default, host can change
 };
 
 function generateGrid(size) {
-  const letters = [...ARABIC_LETTERS];
+  const total = size * size;
+  // Shuffle and pick unique letters, repeat pool if grid bigger than 27
+  let pool = [];
+  while (pool.length < total) {
+    const shuffled = [...ARABIC_LETTERS].sort(() => Math.random() - 0.5);
+    pool = pool.concat(shuffled);
+  }
+  pool = pool.slice(0, total).sort(() => Math.random() - 0.5);
+
   const grid = [];
+  let i = 0;
   for (let r = 0; r < size; r++) {
     grid.push([]);
     for (let c = 0; c < size; c++) {
-      const idx = Math.floor(Math.random() * letters.length);
       grid[r].push({
-        letter: letters[idx],
-        owner: null, // null | 'green' | 'orange'
+        letter: pool[i++],
+        owner: null,
         selected: false
       });
     }
@@ -152,6 +160,7 @@ function sanitizeState() {
     hintUnlocked: gameState.hintUnlocked,
     bothWrong: gameState.bothWrong,
     lastWrongTeam: gameState.lastWrongTeam,
+    inviteCode: gameState.inviteCode,
   };
 }
 
@@ -162,6 +171,17 @@ function getTeamCount(team) {
 // ===== SOCKET EVENTS =====
 io.on('connection', (socket) => {
   console.log('Connected:', socket.id);
+
+  // Check invite code
+  socket.on('checkInvite', (code) => {
+    if (code === gameState.inviteCode) socket.emit('inviteOk');
+    else socket.emit('inviteFail');
+  });
+
+  // Player asks to see the invite code (after answering question correctly)
+  socket.on('getInviteCode', () => {
+    socket.emit('inviteCodeForPlayer', gameState.inviteCode);
+  });
 
   // Host login
   socket.on('hostLogin', (code) => {
@@ -174,8 +194,18 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('setInviteCode', (code) => {
+    if (socket.id !== gameState.host) return;
+    gameState.inviteCode = code;
+    broadcastState();
+  });
+
   // Player join
-  socket.on('playerJoin', ({ name, team }) => {
+  socket.on('playerJoin', ({ name, team, inviteCode }) => {
+    if (inviteCode !== gameState.inviteCode) {
+      socket.emit('joinFail', 'رمز الدعوة غير صحيح');
+      return;
+    }
     if (getTeamCount(team) >= 2) {
       socket.emit('joinFail', 'الفريق ممتلئ');
       return;
