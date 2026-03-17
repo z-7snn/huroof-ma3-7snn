@@ -110,7 +110,7 @@ async function callGemini(prompt) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 20000);
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
     const res = await fetch(url, {
       method: 'POST', signal: ctrl.signal,
       headers: { 'content-type': 'application/json' },
