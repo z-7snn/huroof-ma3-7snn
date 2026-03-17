@@ -68,30 +68,14 @@ const DIFF_DESC = {
 };
 
 function makeFallback(letter, count) {
-  const ex = (LETTER_EXAMPLES[letter] || letter+'...').split('،').map(s=>s.trim());
-  return [
-    {text:`اذكر شخصاً مشهوراً اسمه يبدأ بـ«${letter}»`, answer:ex[0]||letter+'...', hint:'شخصية رياضية أو تاريخية', category:'ثقافي', difficulty:'سهل'},
-    {text:`اذكر دولة أو مدينة تبدأ بـ«${letter}»`,       answer:ex[1]||letter+'...', hint:'موقع جغرافي على الخريطة', category:'جغرافيا', difficulty:'سهل'},
-    {text:`اذكر حيواناً يبدأ بـ«${letter}»`,             answer:ex[2]||letter+'...', hint:'كائن حي من الطبيعة',       category:'علوم',    difficulty:'سهل'},
-  ].slice(0, count);
-}
-
-// تحقق ذكي من الحرف الأول — يدعم عائلة الألف و"ال" التعريف
-function isCorrectStartingLetter(answer, targetLetter) {
-  if (!answer || !targetLetter) return false;
-  const clean = answer.trim();
-  const first = clean.charAt(0);
-  const target = targetLetter.charAt(0);
-  const alefs = ['ا','أ','إ','آ'];
-  // عائلة الألف
-  if (alefs.includes(target) && alefs.includes(first)) return true;
-  // تطابق مباشر
-  if (first === target) return true;
-  // تجاهل "ال" التعريف
-  if (!alefs.includes(target) && clean.startsWith('ال') && clean.length > 2) {
-    if (clean.charAt(2) === target) return true;
-  }
-  return false;
+  // fallback واضح — يظهر فقط لو انقطع الاتصال بالـ API
+  return Array(count).fill(null).map((_, i) => ({
+    text: `⚠️ تعذر توليد السؤال — اضغط "جديد" للمحاولة مرة أخرى`,
+    answer: `${letter}...`,
+    hint: 'اضغط زر التوليد من جديد',
+    category: 'خطأ',
+    difficulty: 'خطأ'
+  })).slice(0, count);
 }
 
 async function generateQuestionsAI(letter, category='عشوائي', difficulty='متوسط', count=3) {
@@ -99,30 +83,28 @@ async function generateQuestionsAI(letter, category='عشوائي', difficulty='
   if (questionCache[cacheKey]) return questionCache[cacheKey];
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return makeFallback(letter, count);
+  if (!apiKey) return [{text:`خطأ: مفتاح الـ API غير موجود`, answer:'خطأ', hint:'تأكد من الإعدادات', category, difficulty}];
 
   const catDesc  = CAT_DESC[category]   || 'متنوع';
   const diffDesc = DIFF_DESC[difficulty] || 'معروفة';
 
-  // ملاحظة: أزلنا أمثلة الحروف العامة لأنها تشتت الذكاء الاصطناعي عن التصنيف المختار
-  const systemPrompt = `أنت صانع أسئلة محترف للعبة مسابقات عربية تشبه Taboo وحروف. يجب أن تعيد مصفوفة JSON فقط بدون أي نصوص إضافية أو Markdown.`;
+  const prompt = `أنت خبير في وضع أسئلة ذكية للعبة "حروف".
+المطلوب: توليد ${count} أسئلة حلها يبدأ بحرف «${letter}».
+التصنيف: ${category} (${catDesc})
+الصعوبة: ${difficulty} (${diffDesc})
 
-  const prompt = `اصنع ${count} أسئلة يكون حلها يبدأ حصرياً بحرف «${letter}».
-التصنيف المطلوب: ${category} (${catDesc})
-مستوى الصعوبة: ${difficulty} (إجابات ${diffDesc})
+قواعد صارمة:
+1. ممنوع نهائياً البدء بعبارة "اذكر كلمة" أو "ما هو الشيء".
+2. استخدم أسلوب الوصف (Taboo): صِف الإجابة بذكاء ودع اللاعب يحزرها.
+3. يجب أن تبدأ الإجابة (answer) حصرياً بحرف «${letter}».
+4. الالتزام التام بالتصنيف المحدد — لا تخلط التصنيفات أبداً.
+5. التلميح (hint) لا يحتوي على الإجابة ولا على أول حرف منها.
 
-قواعد اللعبة (صارمة جداً):
-1. الإجابة (answer) يجب أن تبدأ بحرف «${letter}» (أو أشكاله مثل أ، إ، آ إذا كان الحرف ألف).
-2. السؤال (text) يجب أن يكون وصفياً كأنك تلعب Taboo — صِف الشيء بدقة ليخمنه اللاعب.
-3. ممنوع منعاً باتاً استخدام صيغ مثل "اذكر كلمة تبدأ بـ" أو "ما هو الشيء الذي" أو "أعطني اسماً".
-4. التزم التزاماً كاملاً بالتصنيف (${category}) — لا تضع سؤالاً رياضياً في ديني أبداً.
-5. التلميح (hint) يقرب الفكرة دون أن يحتوي على أي جزء من الإجابة.
+مثال (حرف م - كروي):
+{"text":"أسطورة الأرجنتين وصاحب الكرة الذهبية 8 مرات","answer":"ميسي","hint":"لعب لبرشلونة وإنتر ميامي"}
 
-مثال لسؤال صحيح لحرف "ن" بتصنيف "كروي":
-{"text":"نجم كرة قدم برازيلي لعب لباريس سان جيرمان والهلال","answer":"نيمار","hint":"لاعب جناح مشهور بمهاراته الفردية","category":"كروي","difficulty":"متوسط"}
-
-أخرج النتيجة كمصفوفة JSON بهذا التنسيق حصراً:
-[{"text":"السؤال الوصفي","answer":"الإجابة","hint":"التلميح","category":"${category}","difficulty":"${difficulty}"}]`;
+أرجع مصفوفة JSON فقط:
+[{"text":"...","answer":"...","hint":"...","category":"${category}","difficulty":"${difficulty}"}]`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -134,31 +116,37 @@ async function generateQuestionsAI(letter, category='عشوائي', difficulty='
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 1500,
+        max_tokens: 1200,
         temperature: 0.8,
-        system: systemPrompt,
+        system: 'أنت مولّد أسئلة محترف. رد بـ JSON فقط بدون أي نص خارجه.',
         messages: [{ role: 'user', content: prompt }],
       }),
     });
+
     const data = await res.json();
+    if (data.error) { console.error('API error:', data.error); return makeFallback(letter, count); }
+
     let raw = data?.content?.[0]?.text?.trim() || '';
     // تنظيف markdown
-    if (raw.includes('```')) {
-      for (const part of raw.split('```')) {
-        const p = part.replace(/^json/,'').trim();
-        if (p.startsWith('[')) { raw = p; break; }
-      }
-    }
+    raw = raw.replace(/```json|```/g, '').trim();
+
     const questions = JSON.parse(raw);
-    if (Array.isArray(questions) && questions.length) {
-      const valid = questions.filter(q => isCorrectStartingLetter(q?.answer, letter));
-      const result = (valid.length ? valid : questions).slice(0, count);
-      questionCache[cacheKey] = result;
-      return result;
-    }
+
+    // تحقق ذكي — يدعم عائلة الألف
+    const normalizedLetter = letter.replace(/[أإآ]/g, 'ا');
+    const valid = questions.filter(q => {
+      const firstChar = (q.answer||'').trim().charAt(0).replace(/[أإآ]/g, 'ا');
+      return firstChar === normalizedLetter;
+    });
+
+    const result = (valid.length > 0 ? valid : questions).slice(0, count);
+    questionCache[cacheKey] = result;
+    return result;
+
   } catch(e) {
     console.error('AI error:', e.message);
   }
+
   return makeFallback(letter, count);
 }
 
@@ -494,12 +482,12 @@ io.on('connection', (socket) => {
   socket.on('regenerateQuestion', async ({ category, difficulty }) => {
     if (socket.id!==gameState.host || !gameState.currentQuestion) return;
     const letter = gameState.currentQuestion;
-    // حدّث التفضيلات إذا تغيرت
-    if (category)   gameState.aiPreferences.category   = category;
-    if (difficulty) gameState.aiPreferences.difficulty = difficulty;
-    const cat  = gameState.aiPreferences.category  || 'عشوائي';
-    const diff = gameState.aiPreferences.difficulty || 'متوسط';
-    // احذف الكاش لهذا الحرف بكل التصنيفات عشان يولد جديد فعلاً
+    // حدّث التفضيلات
+    gameState.aiPreferences.category   = category   || gameState.aiPreferences.category;
+    gameState.aiPreferences.difficulty = difficulty || gameState.aiPreferences.difficulty;
+    const cat  = gameState.aiPreferences.category;
+    const diff = gameState.aiPreferences.difficulty;
+    // امسح كاش الحرف كله لضمان عدم تكرار الأسئلة القديمة
     Object.keys(questionCache).forEach(k => { if (k.startsWith(letter+'-')) delete questionCache[k]; });
     const qs = await generateQuestionsAI(letter, cat, diff, 3);
     if (!gameState.selectedCell) return;
