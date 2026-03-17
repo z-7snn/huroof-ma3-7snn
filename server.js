@@ -76,6 +76,24 @@ function makeFallback(letter, count) {
   ].slice(0, count);
 }
 
+// تحقق ذكي من الحرف الأول — يدعم عائلة الألف و"ال" التعريف
+function isCorrectStartingLetter(answer, targetLetter) {
+  if (!answer || !targetLetter) return false;
+  const clean = answer.trim();
+  const first = clean.charAt(0);
+  const target = targetLetter.charAt(0);
+  const alefs = ['ا','أ','إ','آ'];
+  // عائلة الألف
+  if (alefs.includes(target) && alefs.includes(first)) return true;
+  // تطابق مباشر
+  if (first === target) return true;
+  // تجاهل "ال" التعريف
+  if (!alefs.includes(target) && clean.startsWith('ال') && clean.length > 2) {
+    if (clean.charAt(2) === target) return true;
+  }
+  return false;
+}
+
 async function generateQuestionsAI(letter, category='عشوائي', difficulty='متوسط', count=3) {
   const cacheKey = `${letter}-${category}-${difficulty}`;
   if (questionCache[cacheKey]) return questionCache[cacheKey];
@@ -83,22 +101,28 @@ async function generateQuestionsAI(letter, category='عشوائي', difficulty='
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return makeFallback(letter, count);
 
-  const ex       = LETTER_EXAMPLES[letter] || letter+'...';
   const catDesc  = CAT_DESC[category]   || 'متنوع';
   const diffDesc = DIFF_DESC[difficulty] || 'معروفة';
 
-  const prompt = `اصنع ${count} أسئلة لحرف «${letter}».
-التصنيف: ${category} (${catDesc})
-الصعوبة: ${difficulty} (إجابات ${diffDesc})
-أمثلة إجابات صحيحة لهذا الحرف: ${ex}
+  // ملاحظة: أزلنا أمثلة الحروف العامة لأنها تشتت الذكاء الاصطناعي عن التصنيف المختار
+  const systemPrompt = `أنت صانع أسئلة محترف للعبة مسابقات عربية تشبه Taboo وحروف. يجب أن تعيد مصفوفة JSON فقط بدون أي نصوص إضافية أو Markdown.`;
 
-قواعد صارمة:
-1. الإجابة (answer) تبدأ حصرياً بحرف «${letter}» — لا استثناءات.
-2. السؤال (text) محدد ومباشر مثل "نجم كرة قدم برازيلي مشهور" وليس "اذكر كلمة".
-3. التلميح (hint) لا يحتوي على الإجابة.
-4. الإخراج: مصفوفة JSON فقط بدون أي نص خارجها وبدون markdown.
+  const prompt = `اصنع ${count} أسئلة يكون حلها يبدأ حصرياً بحرف «${letter}».
+التصنيف المطلوب: ${category} (${catDesc})
+مستوى الصعوبة: ${difficulty} (إجابات ${diffDesc})
 
-[{"text":"...","answer":"...","hint":"...","category":"${category}","difficulty":"${difficulty}"}]`;
+قواعد اللعبة (صارمة جداً):
+1. الإجابة (answer) يجب أن تبدأ بحرف «${letter}» (أو أشكاله مثل أ، إ، آ إذا كان الحرف ألف).
+2. السؤال (text) يجب أن يكون وصفياً كأنك تلعب Taboo — صِف الشيء بدقة ليخمنه اللاعب.
+3. ممنوع منعاً باتاً استخدام صيغ مثل "اذكر كلمة تبدأ بـ" أو "ما هو الشيء الذي" أو "أعطني اسماً".
+4. التزم التزاماً كاملاً بالتصنيف (${category}) — لا تضع سؤالاً رياضياً في ديني أبداً.
+5. التلميح (hint) يقرب الفكرة دون أن يحتوي على أي جزء من الإجابة.
+
+مثال لسؤال صحيح لحرف "ن" بتصنيف "كروي":
+{"text":"نجم كرة قدم برازيلي لعب لباريس سان جيرمان والهلال","answer":"نيمار","hint":"لاعب جناح مشهور بمهاراته الفردية","category":"كروي","difficulty":"متوسط"}
+
+أخرج النتيجة كمصفوفة JSON بهذا التنسيق حصراً:
+[{"text":"السؤال الوصفي","answer":"الإجابة","hint":"التلميح","category":"${category}","difficulty":"${difficulty}"}]`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -111,13 +135,14 @@ async function generateQuestionsAI(letter, category='عشوائي', difficulty='
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1500,
-        temperature: 0.85,
-        system: 'أنت مولّد أسئلة لعبة عربية. أرجع JSON فقط بدون أي نص آخر.',
+        temperature: 0.8,
+        system: systemPrompt,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
     const data = await res.json();
     let raw = data?.content?.[0]?.text?.trim() || '';
+    // تنظيف markdown
     if (raw.includes('```')) {
       for (const part of raw.split('```')) {
         const p = part.replace(/^json/,'').trim();
@@ -126,7 +151,7 @@ async function generateQuestionsAI(letter, category='عشوائي', difficulty='
     }
     const questions = JSON.parse(raw);
     if (Array.isArray(questions) && questions.length) {
-      const valid = questions.filter(q => q?.answer?.trim().startsWith(letter));
+      const valid = questions.filter(q => isCorrectStartingLetter(q?.answer, letter));
       const result = (valid.length ? valid : questions).slice(0, count);
       questionCache[cacheKey] = result;
       return result;
@@ -451,11 +476,12 @@ io.on('connection', (socket) => {
       gameState.currentQuestionData = alts[idx];
       broadcastState();
     } else {
-      // لو ما في بدائل، ولّد جديد
+      // لو ما في بدائل، ولّد جديد — امسح المفتاح المحدد فقط
       const letter = gameState.currentQuestion;
       const cat  = gameState.aiPreferences?.category  || 'عشوائي';
       const diff = gameState.aiPreferences?.difficulty || 'متوسط';
-      Object.keys(questionCache).forEach(k => { if (k.startsWith(letter+'-')) delete questionCache[k]; });
+      const cacheKey = `${letter}-${cat}-${diff}`;
+      delete questionCache[cacheKey];
       const qs = await generateQuestionsAI(letter, cat, diff, 3);
       gameState.currentQuestionData = qs[0];
       gameState.aiAlternatives = qs.slice(1);
