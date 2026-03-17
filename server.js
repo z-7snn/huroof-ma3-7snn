@@ -51,85 +51,97 @@ function makeFallback(letter, count) {
   })).slice(0, count);
 }
 
+// ── مساعد: استخراج JSON ─────────────────────────────────────────────────────
+function extractJSON(raw) {
+  if (!raw) return null;
+  raw = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  const s = raw.indexOf('['), e = raw.lastIndexOf(']');
+  if (s === -1 || e === -1) return null;
+  return JSON.parse(raw.slice(s, e + 1));
+}
+
+function buildPrompt(letter, category, difficulty, count) {
+  const catDesc  = CAT_DESC[category]   || 'متنوع';
+  const diffDesc = DIFF_DESC[difficulty] || 'معروفة';
+  const sys = 'أنت مولّد أسئلة محترف. رد بـ JSON فقط بدون أي نص خارجه.';
+  const usr = `أنت خبير في وضع أسئلة ذكية للعبة "حروف".\nالمطلوب: توليد ${count} أسئلة حلها يبدأ بحرف «${letter}».\nالتصنيف: ${category} (${catDesc})\nالصعوبة: ${difficulty} (إجابات ${diffDesc})\n\nقواعد صارمة:\n1. ممنوع البدء بعبارة "اذكر كلمة".\n2. استخدم أسلوب الوصف Taboo.\n3. الإجابة تبدأ بحرف «${letter}».\n4. الالتزام بالتصنيف (${category}).\n5. التلميح لا يحتوي على الإجابة.\n\nمثال (م - كروي):\n{"text":"أسطورة الأرجنتين وصاحب الكرة الذهبية 8 مرات","answer":"ميسي","hint":"لعب لبرشلونة"}\n\nأرجع مصفوفة JSON فقط:\n[{"text":"...","answer":"...","hint":"...","category":"${category}","difficulty":"${difficulty}"}]`;
+  return { system: sys, user: usr };
+}
+
+async function callClaude(prompt) {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return null;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST', signal: ctrl.signal,
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, temperature: 0.8, system: prompt.system, messages: [{ role: 'user', content: prompt.user }] }),
+    });
+    clearTimeout(t);
+    const data = await res.json();
+    if (data.error) { console.error('Claude:', data.error.message); return null; }
+    return extractJSON(data?.content?.[0]?.text);
+  } catch(e) { clearTimeout(t); console.error('Claude fetch:', e.message); return null; }
+}
+
+async function callOpenAI(prompt) {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return null;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST', signal: ctrl.signal,
+      headers: { 'Authorization': `Bearer ${key}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 2000, temperature: 0.8, messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }),
+    });
+    clearTimeout(t);
+    const data = await res.json();
+    if (data.error) { console.error('OpenAI:', data.error.message); return null; }
+    return extractJSON(data?.choices?.[0]?.message?.content);
+  } catch(e) { clearTimeout(t); console.error('OpenAI fetch:', e.message); return null; }
+}
+
+async function callGemini(prompt) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return null;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+    const res = await fetch(url, {
+      method: 'POST', signal: ctrl.signal,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt.system + '\n\n' + prompt.user }] }], generationConfig: { maxOutputTokens: 2000, temperature: 0.8 } }),
+    });
+    clearTimeout(t);
+    const data = await res.json();
+    if (data.error) { console.error('Gemini:', data.error.message); return null; }
+    return extractJSON(data?.candidates?.[0]?.content?.parts?.[0]?.text);
+  } catch(e) { clearTimeout(t); console.error('Gemini fetch:', e.message); return null; }
+}
+
 async function generateQuestionsAI(letter, category = 'عشوائي', difficulty = 'متوسط', count = 3) {
   const cacheKey = `${letter}-${category}-${difficulty}`;
   if (questionCache[cacheKey]) return questionCache[cacheKey];
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return makeFallback(letter, count);
+  const prompt = buildPrompt(letter, category, difficulty, count);
+  const norm = (ch) => (ch||'').replace(/[أإآ]/g, 'ا');
 
-  const catDesc  = CAT_DESC[category]   || 'متنوع';
-  const diffDesc = DIFF_DESC[difficulty] || 'معروفة';
-
-  const prompt = `أنت خبير في وضع أسئلة ذكية للعبة "حروف".
-المطلوب: توليد ${count} أسئلة حلها يبدأ بحرف «${letter}».
-التصنيف: ${category} (${catDesc})
-الصعوبة: ${difficulty} (إجابات ${diffDesc})
-
-قواعد صارمة:
-1. ممنوع نهائياً البدء بعبارة "اذكر كلمة" أو "ما هو الشيء".
-2. استخدم أسلوب الوصف Taboo: صِف الإجابة بذكاء ودع اللاعب يحزرها.
-3. يجب أن تبدأ الإجابة (answer) بحرف «${letter}».
-4. الالتزام التام بالتصنيف المحدد (${category}).
-5. التلميح (hint) لا يحتوي على الإجابة.
-
-مثال (حرف م - كروي):
-{"text":"أسطورة الأرجنتين وصاحب الكرة الذهبية 8 مرات","answer":"ميسي","hint":"لعب لبرشلونة وإنتر ميامي"}
-
-أرجع مصفوفة JSON فقط بدون أي نص خارجها:
-[{"text":"...","answer":"...","hint":"...","category":"${category}","difficulty":"${difficulty}"}]`;
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      signal: controller.signal,
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
-        temperature: 0.8,
-        system: 'أنت مولّد أسئلة محترف. رد بـ JSON فقط بدون أي نص خارجه.',
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-    clearTimeout(timeout);
-
-    const data = await res.json();
-    if (data.error) { console.error('API error:', JSON.stringify(data.error)); return makeFallback(letter, count); }
-
-    let raw = data?.content?.[0]?.text?.trim() || '';
-    console.log(`AI raw (${letter}/${category}):`, raw.slice(0, 100));
-
-    if (!raw) return makeFallback(letter, count);
-
-    // تنظيف markdown
-    raw = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-
-    // استخراج أول مصفوفة JSON
-    const arrStart = raw.indexOf('[');
-    const arrEnd   = raw.lastIndexOf(']');
-    if (arrStart === -1 || arrEnd === -1) { console.error('No JSON array in response'); return makeFallback(letter, count); }
-    raw = raw.slice(arrStart, arrEnd + 1);
-
-    const questions = JSON.parse(raw);
-    if (!Array.isArray(questions) || !questions.length) return makeFallback(letter, count);
-
-    // تحقق ذكي — يدعم عائلة الألف
-    const norm = (ch) => (ch||'').replace(/[أإآ]/g, 'ا');
-    const valid = questions.filter(q => norm((q.answer||'').trim().charAt(0)) === norm(letter));
-    const result = (valid.length > 0 ? valid : questions).slice(0, count);
-    questionCache[cacheKey] = result;
-    return result;
-
-  } catch (e) {
-    console.error('AI error:', e.message);
+  for (const [name, fn] of [['Claude', () => callClaude(prompt)], ['OpenAI', () => callOpenAI(prompt)], ['Gemini', () => callGemini(prompt)]]) {
+    try {
+      const questions = await fn();
+      if (!Array.isArray(questions) || !questions.length) continue;
+      console.log(`${name} ok for ${letter}`);
+      const valid = questions.filter(q => norm((q.answer||'').trim().charAt(0)) === norm(letter));
+      const result = (valid.length > 0 ? valid : questions).slice(0, count);
+      questionCache[cacheKey] = result;
+      return result;
+    } catch(e) { console.error(name, 'failed:', e.message); }
   }
+
   return makeFallback(letter, count);
 }
 
