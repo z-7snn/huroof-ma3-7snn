@@ -33,9 +33,12 @@ const AudioEngine = (() => {
     resume();
     const c = getCtx();
     const now = c.currentTime;
-    playTone(440, 0.1, 'square', 0.2, now);
-    playTone(660, 0.1, 'square', 0.2, now + 0.1);
-    playTone(880, 2.8, 'sine', 0.15, now + 0.2);
+    // صوت "بوم" + نغمة صاعدة واضحة
+    playTone(120, 0.15, 'sawtooth', 0.4, now);       // بوم قوي
+    playTone(440, 0.12, 'square',   0.25, now + 0.05);
+    playTone(660, 0.12, 'square',   0.22, now + 0.15);
+    playTone(880, 0.18, 'sine',     0.2,  now + 0.25);
+    playTone(1100, 3.0, 'sine',     0.12, now + 0.35); // رنين طويل خفيف
   }
 
   function playExpire() {
@@ -63,7 +66,9 @@ const AudioEngine = (() => {
   function playTick() {
     resume();
     const c = getCtx();
-    playTone(800, 0.05, 'square', 0.15);
+    const now = c.currentTime;
+    playTone(1200, 0.04, 'square', 0.1, now);
+    playTone(900,  0.03, 'square', 0.06, now + 0.04);
   }
 
   function playWin() {
@@ -124,20 +129,34 @@ function buildHexGrid(grid, container, hexSize, onCellClick, highlightSelected, 
       let fill = '#f8fafc';
       let stroke = '#cbd5e1';
       let strokeW = '1.5';
+      let glowFilter = '';
 
-      if (cell.owner === 'green') { fill = '#bbf7d0'; stroke = '#16a34a'; strokeW = '2'; }
-      else if (cell.owner === 'orange') { fill = '#fed7aa'; stroke = '#ea580c'; strokeW = '2'; }
+      if (cell.owner === 'green') {
+        fill = '#bbf7d0';
+        stroke = '#16a34a';
+        strokeW = '3';
+        glowFilter = 'drop-shadow(0 0 6px rgba(22,163,74,.6)) drop-shadow(0 0 12px rgba(22,163,74,.3))';
+      } else if (cell.owner === 'orange') {
+        fill = '#fed7aa';
+        stroke = '#ea580c';
+        strokeW = '3';
+        glowFilter = 'drop-shadow(0 0 6px rgba(234,88,12,.6)) drop-shadow(0 0 12px rgba(234,88,12,.3))';
+      }
 
       const isSelected = state && state.selectedCell && state.selectedCell.row === r && state.selectedCell.col === c;
-      if (isSelected) { stroke = '#d97706'; strokeW = '3'; fill = '#fef3c7'; }
+      if (isSelected) {
+        stroke = '#d97706';
+        strokeW = '3.5';
+        fill = '#fef3c7';
+        glowFilter = 'drop-shadow(0 0 8px #facc15) drop-shadow(0 0 18px rgba(250,204,21,.5))';
+      }
 
       path.setAttribute('fill', fill);
       path.setAttribute('stroke', stroke);
       path.setAttribute('stroke-width', strokeW);
+      if (glowFilter) path.style.filter = glowFilter;
 
       if (isSelected) {
-        path.style.filter = 'drop-shadow(0 0 8px #facc15)';
-        // Pulsing animation
         path.style.animation = 'hexPulse 1.5s ease-in-out infinite';
       }
 

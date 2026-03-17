@@ -80,25 +80,39 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
 .hex-wrap{display:flex;align-items:center;justify-content:center;width:100%;}
 
 /* MY BIG BUTTON */
-.my-btn-section{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.my-btn-section{display:flex;flex-direction:column;align-items:center;gap:8px;}
 .answer-cd{font-size:3rem;font-weight:900;min-height:56px;display:flex;align-items:center;justify-content:center;line-height:1;}
 .my-big-btn{
-  width:130px;height:130px;border-radius:50%;border:none;
-  font-family:'Tajawal',sans-serif;font-size:1.4rem;font-weight:900;
+  width:150px;height:150px;border-radius:50%;border:none;
+  font-family:'Tajawal',sans-serif;font-size:1.5rem;font-weight:900;
   cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;
-  -webkit-tap-highlight-color:transparent;
+  -webkit-tap-highlight-color:transparent;position:relative;
 }
-.my-big-btn.green{background:radial-gradient(circle at 38% 35%,#4ade80,var(--green));color:#fff;box-shadow:0 8px 0 var(--green-dark),0 10px 24px rgba(22,163,74,.35);}
-.my-big-btn.green:active,.my-big-btn.green.pressed{box-shadow:0 3px 0 var(--green-dark),0 4px 12px rgba(22,163,74,.2);transform:translateY(5px);}
-.my-big-btn.orange{background:radial-gradient(circle at 38% 35%,#fb923c,var(--orange));color:#fff;box-shadow:0 8px 0 var(--orange-dark),0 10px 24px rgba(234,88,12,.35);}
-.my-big-btn.orange:active,.my-big-btn.orange.pressed{box-shadow:0 3px 0 var(--orange-dark),0 4px 12px rgba(234,88,12,.2);transform:translateY(5px);}
-.my-big-btn.locked{background:#e2e8f0;color:var(--muted2);box-shadow:0 6px 0 #cbd5e1;cursor:not-allowed;}
-.my-big-btn.timeout-st{background:#fee2e2;color:var(--red);box-shadow:0 6px 0 #fecaca;cursor:not-allowed;}
-.my-big-btn.flash-g{animation:flashG .35s ease infinite alternate;}
-.my-big-btn.flash-o{animation:flashO .35s ease infinite alternate;}
-@keyframes flashG{from{box-shadow:0 8px 0 var(--green-dark),0 0 20px rgba(22,163,74,.5)}to{box-shadow:0 8px 0 var(--green-dark),0 0 50px rgba(22,163,74,.9)}}
-@keyframes flashO{from{box-shadow:0 8px 0 var(--orange-dark),0 0 20px rgba(234,88,12,.5)}to{box-shadow:0 8px 0 var(--orange-dark),0 0 50px rgba(234,88,12,.9)}}
-.my-btn-label{font-size:.8rem;color:var(--muted);text-align:center;}
+.my-big-btn.green{
+  background:radial-gradient(circle at 38% 35%,#4ade80,var(--green));
+  color:#fff;
+  box-shadow:0 10px 0 var(--green-dark),0 14px 30px rgba(22,163,74,.4),0 0 0 6px rgba(22,163,74,.12);
+}
+.my-big-btn.green:active,.my-big-btn.green.pressed{
+  box-shadow:0 3px 0 var(--green-dark),0 4px 12px rgba(22,163,74,.2);
+  transform:translateY(7px);
+}
+.my-big-btn.orange{
+  background:radial-gradient(circle at 38% 35%,#fb923c,var(--orange));
+  color:#fff;
+  box-shadow:0 10px 0 var(--orange-dark),0 14px 30px rgba(234,88,12,.4),0 0 0 6px rgba(234,88,12,.12);
+}
+.my-big-btn.orange:active,.my-big-btn.orange.pressed{
+  box-shadow:0 3px 0 var(--orange-dark),0 4px 12px rgba(234,88,12,.2);
+  transform:translateY(7px);
+}
+.my-big-btn.locked{background:#e2e8f0;color:var(--muted2);box-shadow:0 8px 0 #cbd5e1;cursor:not-allowed;}
+.my-big-btn.timeout-st{background:#fee2e2;color:var(--red);box-shadow:0 8px 0 #fecaca;cursor:not-allowed;}
+.my-big-btn.flash-g{animation:flashG .4s ease infinite alternate;}
+.my-big-btn.flash-o{animation:flashO .4s ease infinite alternate;}
+@keyframes flashG{from{box-shadow:0 10px 0 var(--green-dark),0 0 20px rgba(22,163,74,.5),0 0 0 6px rgba(22,163,74,.12)}to{box-shadow:0 10px 0 var(--green-dark),0 0 60px rgba(22,163,74,.9),0 0 0 12px rgba(22,163,74,.2)}}
+@keyframes flashO{from{box-shadow:0 10px 0 var(--orange-dark),0 0 20px rgba(234,88,12,.5),0 0 0 6px rgba(234,88,12,.12)}to{box-shadow:0 10px 0 var(--orange-dark),0 0 60px rgba(234,88,12,.9),0 0 0 12px rgba(234,88,12,.2)}}
+.my-btn-label{font-size:.82rem;color:var(--muted);text-align:center;font-weight:700;}
 
 /* ── RIGHT: PLAYERS PANEL ── */
 .players-panel{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;}
@@ -147,22 +161,54 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
 .team-divider{height:1px;background:var(--border);margin:4px 0;}
 
 /* ── OVERLAYS ── */
-#overlay{display:none;position:fixed;inset:0;z-index:1000;flex-direction:column;align-items:center;justify-content:center;gap:16px;backdrop-filter:blur(3px);}
-#overlay.active{display:flex;}
-.ov-name{font-size:2rem;font-weight:900;}
-.ov-cd{font-size:9rem;font-weight:900;line-height:1;}
-.ov-label{font-size:1rem;font-weight:700;color:var(--muted);}
+#overlay{display:none;position:fixed;inset:0;z-index:1000;flex-direction:column;align-items:center;justify-content:center;gap:20px;backdrop-filter:blur(8px);}
+#overlay.active{display:flex;animation:ovIn .25s cubic-bezier(.34,1.4,.64,1);}
+@keyframes ovIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
 
-#judgment-flash{display:none;position:fixed;inset:0;z-index:1500;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
-#judgment-flash.active{display:flex;animation:jfIn .2s cubic-bezier(.34,1.56,.64,1);}
-@keyframes jfIn{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
-.jf-icon{font-size:9rem;line-height:1;filter:drop-shadow(0 4px 20px rgba(0,0,0,.15));}
-.jf-text{font-size:3rem;font-weight:900;text-align:center;}
+/* اسم اللاعب */
+.ov-name{font-size:2.4rem;font-weight:900;letter-spacing:-1px;text-shadow:0 2px 20px rgba(0,0,0,.15);}
+.ov-label{font-size:.95rem;font-weight:700;opacity:.7;}
 
+/* التايمر الدائري */
+.ov-ring-wrap{position:relative;width:160px;height:160px;display:flex;align-items:center;justify-content:center;}
+.ov-ring-svg{position:absolute;inset:0;transform:rotate(-90deg);}
+.ov-ring-bg{fill:none;stroke:rgba(255,255,255,.18);stroke-width:10;}
+.ov-ring-fill{fill:none;stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .9s linear;stroke-dasharray:408;stroke-dashoffset:0;}
+.ov-ring-fill.green{stroke:#4ade80;}
+.ov-ring-fill.orange{stroke:#fb923c;}
+.ov-cd{font-size:5.5rem;font-weight:900;line-height:1;position:relative;z-index:1;}
+
+/* JUDGMENT FLASH */
+#judgment-flash{display:none;position:fixed;inset:0;z-index:1500;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+#judgment-flash.active{display:flex;animation:jfIn .18s cubic-bezier(.34,1.7,.64,1);}
+@keyframes jfIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+.jf-icon{font-size:10rem;line-height:1;filter:drop-shadow(0 4px 30px rgba(0,0,0,.2));animation:jfPop .3s cubic-bezier(.34,1.7,.64,1);}
+@keyframes jfPop{from{transform:scale(.6) rotate(-10deg)}to{transform:scale(1) rotate(0deg)}}
+.jf-text{font-size:3.2rem;font-weight:900;text-align:center;letter-spacing:-1px;}
+.jf-player-name{font-size:1.3rem;font-weight:700;opacity:.75;text-align:center;}
+
+/* WIN OVERLAY */
 #win-overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,.97);z-index:2000;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
 #win-overlay.active{display:flex;}
 .win-trophy{font-size:5rem;animation:wb .45s ease infinite alternate;}
-@keyframes wb{from{transform:scale(1)}to{transform:scale(1.08)}}
+@keyframes wb{from{transform:scale(1)}to{transform:scale(1.1) rotate(5deg)}}
+
+/* BADGE INFO CARD - التصنيف والصعوبة */
+.q-info-card{
+  display:none;
+  background:rgba(255,255,255,.85);
+  backdrop-filter:blur(10px);
+  border:1.5px solid var(--border);
+  border-radius:20px;
+  padding:10px 20px;
+  gap:10px;
+  align-items:center;
+  box-shadow:0 4px 20px rgba(0,0,0,.08);
+  animation:cardIn .35s cubic-bezier(.34,1.4,.64,1);
+}
+.q-info-card.active{display:flex;}
+@keyframes cardIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.q-badge{padding:5px 14px;border-radius:20px;font-size:.85rem;font-weight:700;}
 
 @media(max-width:700px){
   .game-wrap{grid-template-columns:1fr;}
@@ -186,6 +232,10 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
     <div class="topbar-badges" id="topbar-badges"></div>
   </div>
   <div class="q-timer-bar"><div class="q-timer-fill" id="q-timer-fill"></div></div>
+  <!-- كارد التصنيف والصعوبة تحت الشريط -->
+  <div style="display:flex;justify-content:center;padding:6px 0 0;position:relative;z-index:10;">
+    <div class="q-info-card" id="q-info-card"></div>
+  </div>
 
   <div class="game-wrap">
 
@@ -232,17 +282,24 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
   </div>
 </div>
 
-<!-- OVERLAY -->
+<!-- OVERLAY: من ضغط + تايمر دائري -->
 <div id="overlay">
   <div class="ov-name" id="ov-name"></div>
-  <div class="ov-label">عنده 5 ثوانٍ يجاوب!</div>
-  <div class="ov-cd" id="ov-cd">5</div>
+  <div class="ov-label" id="ov-label">عنده 5 ثوانٍ يجاوب!</div>
+  <div class="ov-ring-wrap">
+    <svg class="ov-ring-svg" viewBox="0 0 130 130">
+      <circle class="ov-ring-bg" cx="65" cy="65" r="55"/>
+      <circle class="ov-ring-fill" id="ov-ring" cx="65" cy="65" r="55"/>
+    </svg>
+    <div class="ov-cd" id="ov-cd">5</div>
+  </div>
 </div>
 
 <!-- JUDGMENT FLASH -->
 <div id="judgment-flash">
   <div class="jf-icon" id="jf-icon"></div>
   <div class="jf-text" id="jf-text"></div>
+  <div class="jf-player-name" id="jf-player"></div>
 </div>
 
 <!-- WIN OVERLAY -->
@@ -315,7 +372,7 @@ function renderGame(state){
   document.getElementById('green-label').textContent = '🟢 '+state.teamNames.green;
   document.getElementById('orange-label').textContent = '🟠 '+state.teamNames.orange;
 
-  // ─ اللاعبون يشوفون التصنيف والصعوبة فقط ─
+  // ─ اللاعبون يشوفون الحرف + التصنيف والصعوبة فقط (بدون السؤال) ─
   const qd = state.currentQuestionData;
   const qEl = document.getElementById('topbar-question');
   if(state.currentQuestion){
@@ -324,17 +381,38 @@ function renderGame(state){
     qEl.textContent = '—';
   }
 
-  // Badges: التصنيف والصعوبة فقط
-  const badgesEl = document.getElementById('topbar-badges');
+  // q-info-card: التصنيف والصعوبة بشكل واضح
+  const card = document.getElementById('q-info-card');
   if(qd && qd.category && qd.category !== '—'){
-    const catColors = {'كروي':'#dbeafe;color:#1d4ed8','ديني':'#fef3c7;color:#92400e','علوم':'#dcfce7;color:#14532d','جغرافيا':'#f3e8ff;color:#6b21a8','علمي':'#e0f2fe;color:#0c4a6e','ثقافي':'#fce7f3;color:#9d174d'};
-    const diffColors = {'سهل':'#dcfce7;color:#14532d','متوسط':'#fef3c7;color:#92400e','صعب':'#fee2e2;color:#dc2626'};
-    const catStyle = catColors[qd.category] || '#f1f5f9;color:#475569';
-    const diffStyle = diffColors[qd.difficulty] || '#f1f5f9;color:#475569';
-    badgesEl.innerHTML = `<span class="badge" style="background:${catStyle}">${qd.category}</span><span class="badge" style="background:${diffStyle}">${qd.difficulty||''}</span>`;
-  } else if(qd && qd.text === '⏳ جاري توليد السؤال...'){
-    badgesEl.innerHTML = `<span class="badge" style="background:#f1f5f9;color:#64748b">⏳ جاري التحضير...</span>`;
-  } else { badgesEl.innerHTML=''; }
+    const catColors = {
+      'كروي':    'background:#dbeafe;color:#1d4ed8',
+      'ديني':    'background:#fef3c7;color:#92400e',
+      'علوم':    'background:#dcfce7;color:#14532d',
+      'جغرافيا': 'background:#f3e8ff;color:#6b21a8',
+      'علمي':    'background:#e0f2fe;color:#0c4a6e',
+      'ثقافي':   'background:#fce7f3;color:#9d174d'
+    };
+    const diffColors = {
+      'سهل':    'background:#dcfce7;color:#14532d',
+      'متوسط':  'background:#fef3c7;color:#92400e',
+      'صعب':    'background:#fee2e2;color:#dc2626'
+    };
+    const catStyle  = catColors[qd.category]   || 'background:#f1f5f9;color:#475569';
+    const diffStyle = diffColors[qd.difficulty] || 'background:#f1f5f9;color:#475569';
+    card.innerHTML = `
+      <span style="font-size:.78rem;color:var(--muted);font-weight:700">التصنيف</span>
+      <span class="q-badge" style="${catStyle}">${qd.category}</span>
+      <span style="font-size:.78rem;color:var(--muted);font-weight:700;margin-right:6px">الصعوبة</span>
+      <span class="q-badge" style="${diffStyle}">${qd.difficulty||''}</span>
+    `;
+    card.classList.add('active');
+  } else {
+    card.classList.remove('active');
+    card.innerHTML = '';
+  }
+
+  // أخفي الـ badges القديمة
+  document.getElementById('topbar-badges').innerHTML = '';
 
   // Question timer
   const fill = document.getElementById('q-timer-fill');
@@ -512,40 +590,68 @@ function voteHint(){ if(hintVoted)return; hintVoted=true; socket.emit('voteHint'
 function voteCancelQ(){ if(cancelVoted)return; cancelVoted=true; socket.emit('voteCancelQuestion'); }
 
 // ─── OVERLAY ────────────────────────────────────────────────────────────────
-function showOverlay(pressedId,playerName,team){
-  const ov=document.getElementById('overlay');
-  const nameEl=document.getElementById('ov-name');
-  const cdEl=document.getElementById('ov-cd');
-  ov.style.background=team==='green'?'rgba(240,253,244,.96)':'rgba(255,247,237,.96)';
-  nameEl.textContent=playerName; nameEl.style.color=team==='green'?'var(--green)':'var(--orange)';
-  cdEl.style.color=team==='green'?'var(--green)':'var(--orange)';
+const ANSWER_SECS = 5;
+const RING_CIRCUMFERENCE = 2 * Math.PI * 55; // r=55 → ~345.6
+
+function showOverlay(pressedId, playerName, team){
+  const ov   = document.getElementById('overlay');
+  const nameEl = document.getElementById('ov-name');
+  const labelEl = document.getElementById('ov-label');
+  const cdEl = document.getElementById('ov-cd');
+  const ring = document.getElementById('ov-ring');
+
+  ov.style.background = team==='green'
+    ? 'rgba(240,253,244,.96)'
+    : 'rgba(255,247,237,.96)';
+  nameEl.textContent  = playerName;
+  nameEl.style.color  = team==='green' ? 'var(--green)' : 'var(--orange)';
+  cdEl.style.color    = team==='green' ? 'var(--green)' : 'var(--orange)';
+  labelEl.textContent = 'عنده '+ANSWER_SECS+' ثوانٍ يجاوب!';
+
+  // ring colour
+  ring.className = 'ov-ring-fill ' + team;
+  ring.style.strokeDasharray  = RING_CIRCUMFERENCE;
+  ring.style.strokeDashoffset = '0';
+
   ov.classList.add('active');
-  let n=5; cdEl.textContent=n;
+  let n = ANSWER_SECS;
+  cdEl.textContent = n;
+
   if(overlayTimer) clearInterval(overlayTimer);
-  overlayTimer=setInterval(()=>{
+  overlayTimer = setInterval(()=>{
     n--;
-    if(n<=0){ clearInterval(overlayTimer); AudioEngine.playExpire(); cdEl.textContent='⏰'; setTimeout(()=>ov.classList.remove('active'),1800); }
-    else{ AudioEngine.playTick(); cdEl.textContent=n; }
-  },1000);
+    const pct = n / ANSWER_SECS;
+    ring.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - pct);
+    if(n <= 0){
+      clearInterval(overlayTimer); overlayTimer = null;
+      AudioEngine.playExpire();
+      cdEl.textContent = '⏰';
+      setTimeout(()=> ov.classList.remove('active'), 1800);
+    } else {
+      AudioEngine.playTick();
+      cdEl.textContent = n;
+      cdEl.style.color = n <= 2 ? 'var(--red)' : (team==='green'?'var(--green)':'var(--orange)');
+    }
+  }, 1000);
 }
 
 function showJudgmentFlash(icon, text, playerName, color, bg){
-  const el=document.getElementById('judgment-flash');
-  el.style.background=bg;
-  document.getElementById('jf-icon').textContent=icon;
-  document.getElementById('jf-text').textContent=text;
-  document.getElementById('jf-text').style.color=color;
-  // اسم اللاعب
-  let nameEl=document.getElementById('jf-player');
-  if(!nameEl){
-    nameEl=document.createElement('div');
-    nameEl.id='jf-player';
-    nameEl.style.cssText='font-size:1.1rem;font-weight:700;color:var(--muted);margin-top:4px;';
-    el.appendChild(nameEl);
-  }
-  nameEl.textContent = playerName || '';
+  const el     = document.getElementById('judgment-flash');
+  const iconEl = document.getElementById('jf-icon');
+  const textEl = document.getElementById('jf-text');
+  const nameEl = document.getElementById('jf-player');
+
+  el.style.background  = bg;
+  iconEl.textContent   = icon;
+  textEl.textContent   = text;
+  textEl.style.color   = color;
+  nameEl.textContent   = playerName || '';
+  nameEl.style.color   = color;
+
+  el.classList.remove('active');
+  void el.offsetWidth; // force reflow for re-animation
   el.classList.add('active');
-  setTimeout(()=>el.classList.remove('active'), 2200);
+  setTimeout(()=> el.classList.remove('active'), 2400);
 }
 
 function showWinOverlay(winner){
