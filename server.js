@@ -1984,8 +1984,8 @@ function getMultipleQuestions(letter, category, difficulty, count) {
   return [...pool].sort(() => Math.random() - 0.5).slice(0, count);
 }
 
-// Alias for compatibility
-async function generateQuestionsAI(letter, category, difficulty, count) {
+// Sync - no AI needed anymore
+function generateQuestionsAI(letter, category, difficulty, count) {
   return getMultipleQuestions(letter, category, difficulty, count);
 }
 
@@ -2234,32 +2234,29 @@ io.on('connection', (socket) => {
   socket.on('setAIPreferences', ({ category, difficulty }) => {
     if (socket.id!==gameState.host) return;
     gameState.aiPreferences = { category: category||'عشوائي', difficulty: difficulty||'متوسط' };
-    clearQuestionCache();
   });
 
-  socket.on('selectCell', async ({ row, col }) => {
+  socket.on('selectCell', ({ row, col }) => {
     if (socket.id!==gameState.host || gameState.grid[row]?.[col]?.owner) return;
     clearAllTimers();
     const letter = gameState.grid[row][col].letter;
     gameState.selectedCell={ row, col };
     gameState.currentQuestion=letter;
     gameState.questionStartTime=Date.now();
-    gameState.currentQuestionData={ text:'⏳ جاري توليد السؤال...', hint:'—', category:'—', difficulty:'—', answer:'—' };
     resetButtonState();
     gameState.buttonOpen=true; gameState.lastWrongTeam=null; gameState.timeoutGiven={};
     gameState.hintVotes={}; gameState.hintActive=false; gameState.hintUnlocked=false;
     gameState.cancelVoteActive=false; gameState.cancelVotes={};
+
+    // توليد فوري بدون async
+    const pref = gameState.aiPreferences;
+    const questions = generateQuestionsAI(letter, pref.category, pref.difficulty, 3);
+    gameState.currentQuestionData = questions[0] || null;
+    gameState.aiAlternatives = questions.slice(1);
     broadcastState();
 
-    const pref = gameState.aiPreferences;
-    generateQuestionsAI(letter, pref.category, pref.difficulty, 3).then(questions => {
-      if (!gameState.selectedCell || gameState.selectedCell.row!==row || gameState.selectedCell.col!==col) return;
-      gameState.currentQuestionData=questions[0];
-      gameState.aiAlternatives=questions.slice(1);
-      broadcastState();
-      const hostSock=[...io.sockets.sockets.values()].find(s=>s.id===gameState.host);
-      if (hostSock) hostSock.emit('questionsReady',{ active:questions[0], alternatives:questions.slice(1) });
-    });
+    const hostSock = [...io.sockets.sockets.values()].find(s=>s.id===gameState.host);
+    if (hostSock) hostSock.emit('questionsReady',{ active:questions[0], alternatives:questions.slice(1) });
 
     gameState.hintTimerHandle=setTimeout(()=>{ gameState.hintActive=true; broadcastState(); }, HINT_AFTER_MS);
     gameState.cancelVoteTimerHandle=setTimeout(()=>{ gameState.cancelVoteActive=true; broadcastState(); }, CANCEL_VOTE_AFTER);
@@ -2270,7 +2267,7 @@ io.on('connection', (socket) => {
     }, QUESTION_EXPIRE);
   });
 
-  socket.on('selectAlternativeQ', async idx => {
+  socket.on('selectAlternativeQ', idx => {
     if (socket.id!==gameState.host || !gameState.currentQuestion) return;
     const alts=gameState.aiAlternatives||[];
     if (alts[idx]) {
@@ -2278,8 +2275,7 @@ io.on('connection', (socket) => {
     } else {
       const letter=gameState.currentQuestion;
       const cat=gameState.aiPreferences.category; const diff=gameState.aiPreferences.difficulty;
-      const cacheKey=`${letter}-${cat}-${diff}`; delete questionCache[cacheKey];
-      const qs=await generateQuestionsAI(letter,cat,diff,3);
+      const qs=generateQuestionsAI(letter,cat,diff,3);
       gameState.currentQuestionData=qs[0]; gameState.aiAlternatives=qs.slice(1);
       broadcastState();
       const hostSock=[...io.sockets.sockets.values()].find(s=>s.id===gameState.host);
@@ -2287,14 +2283,13 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('regenerateQuestion', async ({ category, difficulty }) => {
+  socket.on('regenerateQuestion', ({ category, difficulty }) => {
     if (socket.id!==gameState.host || !gameState.currentQuestion) return;
     const letter=gameState.currentQuestion;
-    gameState.aiPreferences.category   = category   || gameState.aiPreferences.category;
-    gameState.aiPreferences.difficulty = difficulty || gameState.aiPreferences.difficulty;
+    if (category)   gameState.aiPreferences.category   = category;
+    if (difficulty) gameState.aiPreferences.difficulty = difficulty;
     const cat=gameState.aiPreferences.category; const diff=gameState.aiPreferences.difficulty;
-    Object.keys(questionCache).forEach(k => { if (k.startsWith(letter+'-')) delete questionCache[k]; });
-    const qs=await generateQuestionsAI(letter,cat,diff,3);
+    const qs=generateQuestionsAI(letter,cat,diff,3);
     if (!gameState.selectedCell) return;
     gameState.currentQuestionData=qs[0]; gameState.aiAlternatives=qs.slice(1);
     broadcastState();
