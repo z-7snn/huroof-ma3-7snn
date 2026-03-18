@@ -33,6 +33,7 @@ let gameState = {
   inviteCode: 'حسن', timeoutGiven: {},
   cancelVoteActive: false, cancelVotes: {},
   playerSurveys: {}, questionStartTime: null,
+  xpMultiplier: 1,
 };
 
 // =====================================================
@@ -128,6 +129,7 @@ function sanitizeState() {
     inviteCode: gameState.inviteCode,
     cancelVoteActive: gameState.cancelVoteActive, cancelVotes: gameState.cancelVotes,
     questionStartTime: gameState.questionStartTime,
+    xpMultiplier: gameState.xpMultiplier,
   };
 }
 
@@ -313,6 +315,13 @@ function registerSocketEvents(io, db, playersDB, saveDB, getPlayerBadge, generat
       if (hostSock) hostSock.emit('questionsReady',{ active:qs[0], alternatives:qs.slice(1) });
     });
 
+    socket.on('setXpMultiplier', (mult) => {
+      if (socket.id!==gameState.host) return;
+      const valid = [1,2,3];
+      gameState.xpMultiplier = valid.includes(mult) ? mult : 1;
+      broadcastState();
+    });
+
     socket.on('judge', correct => {
       if (socket.id!==gameState.host) return;
       const pid=gameState.buttonPressedBy;
@@ -325,17 +334,20 @@ function registerSocketEvents(io, db, playersDB, saveDB, getPlayerBadge, generat
         player.score++; player.correctCount++;
         const {row,col}=gameState.selectedCell;
         gameState.grid[row][col].owner=player.team;
+        const mult = gameState.xpMultiplier || 1;
         clearAllTimers();
         gameState.selectedCell=null; gameState.currentQuestion=null;
         gameState.currentQuestionData=null; gameState.questionStartTime=null;
         gameState.lastWrongTeam=null; gameState.timeoutGiven={};
         gameState.cancelVoteActive=false; gameState.cancelVotes={};
+        gameState.xpMultiplier=1;
         resetButtonState();
         if (player.dbUsername) {
           try {
             const dbP = db.prepare('SELECT * FROM players WHERE username=? COLLATE NOCASE').get(player.dbUsername);
             if (dbP) {
-              const newCorrect = dbP.correct_answers + 1;
+              const xpGained   = 1 * mult;
+              const newCorrect = dbP.correct_answers + xpGained;
               const newLevel   = Math.min(Math.floor(newCorrect / ANSWERS_PER_LEVEL) + 1, MAX_LEVEL);
               const leveledUp  = newLevel > dbP.level;
               let newPrestige  = dbP.prestige, prestigeUp = false;
@@ -349,8 +361,31 @@ function registerSocketEvents(io, db, playersDB, saveDB, getPlayerBadge, generat
                 pSock.emit('xpUpdate',{correct_answers:newCorrect,level:prestigeUp?1:newLevel,prestige:newPrestige,badge:getPlayerBadge(newPrestige)});
               }
               player.badge = getPlayerBadge(newPrestige);
+              // أرسل حدث XP لكل اللاعبين عشان يشوفون البار
+              io.emit('xpGain', {
+                playerId: pid,
+                playerName: player.name,
+                team: player.team,
+                xpGained,
+                multiplier: mult,
+                newCorrect,
+                level: prestigeUp?1:newLevel,
+                maxLevel: MAX_LEVEL,
+                answersPerLevel: ANSWERS_PER_LEVEL,
+              });
             }
           } catch(e){ console.error('XP error:',e); }
+        } else {
+          // حتى لو ما عنده حساب، نرسل الحدث للـ animation
+          io.emit('xpGain', {
+            playerId: pid,
+            playerName: player.name,
+            team: player.team,
+            xpGained: 1 * mult,
+            multiplier: mult,
+            newCorrect: null,
+            level: null,
+          });
         }
         const winner=checkWin();
         if (winner) {
