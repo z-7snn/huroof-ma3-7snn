@@ -192,42 +192,24 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
 .tut-hint{font-size:.75rem;color:#94a3b8;}
 .tut-skip{position:absolute;top:14px;left:16px;font-size:.72rem;color:#94a3b8;pointer-events:all;cursor:pointer;padding:4px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;}
 
-/* XP GAIN POPUP */
-#xp-popup{
-  position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(120px);
-  z-index:900;pointer-events:none;transition:transform .45s cubic-bezier(.34,1.5,.64,1),opacity .45s;
-  opacity:0;min-width:280px;max-width:360px;
-}
-#xp-popup.show{transform:translateX(-50%) translateY(0);opacity:1;}
-#xp-popup.hide{transform:translateX(-50%) translateY(80px);opacity:0;transition:transform .35s ease-in,opacity .35s ease-in;}
-#xp-popup-inner{
-  background:var(--surface);border:2px solid var(--border);border-radius:16px;
-  padding:14px 18px;box-shadow:0 8px 32px rgba(0,0,0,.14);
-  display:flex;flex-direction:column;gap:8px;
-}
-#xp-popup-name{font-size:1rem;font-weight:900;text-align:center;}
-#xp-popup-mult{font-size:.78rem;font-weight:700;text-align:center;min-height:16px;}
-#xp-bar-wrap{display:flex;flex-direction:column;gap:4px;}
-#xp-bar-track{
-  height:14px;background:#e2e8f0;border-radius:20px;overflow:hidden;
-  position:relative;
-}
-#xp-bar-fill{
-  position:absolute;top:0;left:0;height:100%;border-radius:20px;
-  transition:width .8s cubic-bezier(.22,1,.36,1);
-}
-#xp-bar-fill-new{
-  position:absolute;top:0;left:0;height:100%;border-radius:20px;
-  opacity:.45;transition:width 1.1s cubic-bezier(.22,1,.36,1);
-}
-#xp-bar-labels{display:flex;justify-content:space-between;font-size:.68rem;font-weight:700;color:var(--muted);}
-#xp-gain-label{font-size:.82rem;font-weight:900;text-align:center;}
-
-
+/* WIN OVERLAY FIX */
 #win-overlay.active{display:flex;}
 #mvp-wrap{display:none;flex-direction:column;align-items:center;gap:4px;background:var(--yellow-light);border:2px solid #fcd34d;border-radius:16px;padding:16px 32px;text-align:center;}
 #mvp-wrap.mvp-reveal{display:flex;animation:mvpIn .6s cubic-bezier(.34,1.7,.64,1);}
 @keyframes mvpIn{from{opacity:0;transform:scale(.3) rotate(-12deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+
+/* XP POPUP */
+#xp-popup{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(100px);z-index:800;pointer-events:none;opacity:0;transition:transform .45s cubic-bezier(.34,1.5,.64,1),opacity .4s;min-width:270px;}
+#xp-popup.show{transform:translateX(-50%) translateY(0);opacity:1;}
+#xp-popup.hide{transform:translateX(-50%) translateY(60px);opacity:0;transition:transform .3s ease-in,opacity .3s ease-in;}
+#xp-popup-inner{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:13px 18px;box-shadow:0 8px 28px rgba(0,0,0,.13);display:flex;flex-direction:column;gap:7px;}
+#xp-popup-name{font-size:.95rem;font-weight:900;text-align:center;}
+#xp-popup-mult{font-size:.75rem;font-weight:700;text-align:center;min-height:14px;}
+#xp-bar-track{height:13px;background:#e2e8f0;border-radius:20px;overflow:hidden;position:relative;}
+#xp-bar-fill{position:absolute;top:0;left:0;height:100%;border-radius:20px;}
+#xp-bar-fill-new{position:absolute;top:0;left:0;height:100%;border-radius:20px;opacity:.4;}
+#xp-bar-labels{display:flex;justify-content:space-between;font-size:.66rem;font-weight:700;color:var(--muted);margin-top:3px;}
+#xp-gain-label{font-size:.82rem;font-weight:900;text-align:center;}
 
 </style>
 </head>
@@ -243,7 +225,10 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
   <div class="topbar">
     <div class="topbar-title">حروف مع حسن <span style="font-size:.6rem;font-weight:400;-webkit-text-fill-color:var(--muted);color:var(--muted)">(النسخة الرسمية)</span></div>
     <div class="topbar-question" id="topbar-question">—</div>
-    <div class="topbar-badges" id="topbar-badges"><span id="my-prestige-badge" style="font-size:1.1rem"></span></div>
+    <div class="topbar-badges" id="topbar-badges">
+      <span id="my-name-display" style="font-size:.8rem;font-weight:700;color:var(--muted);padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;"></span>
+      <span id="my-prestige-badge" style="font-size:1.1rem"></span>
+    </div>
   </div>
   <div class="q-timer-bar"><div class="q-timer-fill" id="q-timer-fill"></div></div>
 
@@ -310,16 +295,11 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
   <div id="xp-popup-inner">
     <div id="xp-popup-name"></div>
     <div id="xp-popup-mult"></div>
-    <div id="xp-bar-wrap">
-      <div id="xp-bar-track">
-        <div id="xp-bar-fill"></div>
-        <div id="xp-bar-fill-new"></div>
-      </div>
-      <div id="xp-bar-labels">
-        <span id="xp-lv-current"></span>
-        <span id="xp-lv-next"></span>
-      </div>
+    <div id="xp-bar-track">
+      <div id="xp-bar-fill"></div>
+      <div id="xp-bar-fill-new"></div>
     </div>
+    <div id="xp-bar-labels"><span id="xp-lv-current"></span><span id="xp-lv-next"></span></div>
     <div id="xp-gain-label"></div>
   </div>
 </div>
@@ -362,6 +342,8 @@ socket.on('connect',()=>{
   if(name&&team&&code){
     myName=name; myTeam=team;
     document.getElementById('lobby-msg').textContent=`⏳ مرحباً ${name}...`;
+    const nameDisp=document.getElementById('my-name-display');
+    if(nameDisp){ nameDisp.textContent=name; nameDisp.style.color=team==='green'?'var(--green)':'var(--orange)'; nameDisp.style.borderColor=team==='green'?'var(--green-mid,#86efac)':'var(--orange-mid,#fdba74)'; }
     socket.emit('playerJoin',{name,team,inviteCode:code});
   } else { window.location.href='/'; }
 });
@@ -385,91 +367,46 @@ socket.on('judgeResult',({correct, playerName})=>{
   }
 });
 
-socket.on('xpGain', (d) => {
-  // أظهر البار بعد ثانية (بعد ما يخلص الـ judgment flash)
-  setTimeout(() => showXpPopup(d), 900);
-});
+socket.on('xpGain', d => { setTimeout(()=>showXpPopup(d), 900); });
 
-let xpPopupTimer = null;
+let _xpTimer=null;
 function showXpPopup(d){
-  const popup    = document.getElementById('xp-popup');
-  const nameEl   = document.getElementById('xp-popup-name');
-  const multEl   = document.getElementById('xp-popup-mult');
-  const fillEl   = document.getElementById('xp-bar-fill');
-  const fillNew  = document.getElementById('xp-bar-fill-new');
-  const lvCur    = document.getElementById('xp-lv-current');
-  const lvNxt    = document.getElementById('xp-lv-next');
-  const gainEl   = document.getElementById('xp-gain-label');
-
-  const color    = d.team === 'green' ? 'var(--green)' : 'var(--orange)';
-  const colorDk  = d.team === 'green' ? 'var(--green-dark,#14532d)' : '#7c2d12';
-
-  // اسم اللاعب
-  nameEl.textContent = d.playerName;
-  nameEl.style.color = color;
-
-  // المضاعف
-  if(d.multiplier > 1){
-    multEl.textContent = d.multiplier === 3 ? '🔥 تريبل XP ×3' : '⚡ دبل XP ×2';
-    multEl.style.color = d.multiplier === 3 ? '#d97706' : '#6366f1';
+  const popup=document.getElementById('xp-popup');
+  const color=d.team==='green'?'var(--green)':'var(--orange)';
+  document.getElementById('xp-popup-name').textContent=d.playerName;
+  document.getElementById('xp-popup-name').style.color=color;
+  const mEl=document.getElementById('xp-popup-mult');
+  mEl.textContent=d.multiplier===3?'🔥 تريبل XP ×3':d.multiplier===2?'⚡ دبل XP ×2':'';
+  mEl.style.color=d.multiplier===3?'#d97706':'#6366f1';
+  const fill=document.getElementById('xp-bar-fill'), fillN=document.getElementById('xp-bar-fill-new');
+  fill.style.background=color; fillN.style.background=color;
+  let pctB=0,pctA=0;
+  if(d.newCorrect!==null&&d.answersPerLevel){
+    const apl=d.answersPerLevel,lv=d.level||1;
+    const inLv=d.newCorrect-(lv-1)*apl;
+    pctA=Math.min(100,Math.round(inLv/apl*100));
+    pctB=Math.max(0,pctA-Math.round(d.xpGained/apl*100));
+    document.getElementById('xp-lv-current').textContent='Lv '+lv;
+    document.getElementById('xp-lv-next').textContent='Lv '+(lv+1);
   } else {
-    multEl.textContent = '';
+    const sess=(gameState?.players[d.playerId]?.correctCount||1);
+    pctA=Math.min(100,(sess%10)*10); pctB=Math.max(0,pctA-10);
+    document.getElementById('xp-lv-current').textContent='';
+    document.getElementById('xp-lv-next').textContent='';
   }
-
-  // حساب XP بار
-  let pctBefore = 0, pctAfter = 0;
-  if(d.newCorrect !== null && d.answersPerLevel){
-    const apl   = d.answersPerLevel;
-    const lv    = d.level || 1;
-    const start = (lv - 1) * apl;          // بداية الليفل الحالي
-    const inLv  = d.newCorrect - start;     // الأكس بي داخل الليفل
-    pctAfter    = Math.min(100, Math.round((inLv / apl) * 100));
-    pctBefore   = Math.max(0, pctAfter - Math.round((d.xpGained / apl) * 100));
-    lvCur.textContent  = 'Lv ' + lv;
-    lvNxt.textContent  = 'Lv ' + (lv + 1);
-  } else {
-    // لاعب بدون حساب — بار رمزي بناءً على الإجابات الصحيحة في الجلسة
-    const sess = (gameState?.players[d.playerId]?.correctCount || 1);
-    pctAfter   = Math.min(100, (sess % 10) * 10);
-    pctBefore  = Math.max(0, pctAfter - 10);
-    lvCur.textContent = '';
-    lvNxt.textContent = '';
-  }
-
-  // ألوان البار
-  fillEl.style.background  = color;
-  fillNew.style.background = colorDk;
-
-  // نبدأ من القديم ثم نتحرك للجديد
-  fillEl.style.transition  = 'none';
-  fillNew.style.transition = 'none';
-  fillEl.style.width       = pctBefore + '%';
-  fillNew.style.width      = pctBefore + '%';
-
-  // نص المكسب
-  gainEl.textContent = '+' + d.xpGained + ' XP';
-  gainEl.style.color = color;
-
-  // أظهر البوب-أب
-  popup.classList.remove('hide');
-  popup.classList.add('show');
-
-  // بعد frame واحد: شغّل الأنيميشن
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    fillEl.style.transition  = 'width .8s cubic-bezier(.22,1,.36,1)';
-    fillNew.style.transition = 'width 1.1s cubic-bezier(.22,1,.36,1)';
-    fillEl.style.width       = pctAfter + '%';
-    fillNew.style.width      = pctAfter + '%';
+  fill.style.transition='none'; fillN.style.transition='none';
+  fill.style.width=pctB+'%'; fillN.style.width=pctB+'%';
+  document.getElementById('xp-gain-label').textContent='+'+d.xpGained+' XP';
+  document.getElementById('xp-gain-label').style.color=color;
+  popup.classList.remove('hide'); popup.classList.add('show');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    fill.style.transition='width .8s cubic-bezier(.22,1,.36,1)';
+    fillN.style.transition='width 1.1s cubic-bezier(.22,1,.36,1)';
+    fill.style.width=pctA+'%'; fillN.style.width=pctA+'%';
   }));
-
-  // أخفيه بعد 3.5 ثانية
-  if(xpPopupTimer) clearTimeout(xpPopupTimer);
-  xpPopupTimer = setTimeout(() => {
-    popup.classList.remove('show');
-    popup.classList.add('hide');
-  }, 3500);
+  if(_xpTimer) clearTimeout(_xpTimer);
+  _xpTimer=setTimeout(()=>{ popup.classList.remove('show'); popup.classList.add('hide'); },3500);
 }
-
 
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────

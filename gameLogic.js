@@ -212,8 +212,7 @@ function registerSocketEvents(io, db, playersDB, saveDB, getPlayerBadge, generat
     });
 
     socket.on('playerJoin', ({ name, team, inviteCode, dbUsername }) => {
-      const isAuth = dbUsername && db.prepare('SELECT id FROM players WHERE username=? COLLATE NOCASE').get(dbUsername);
-      if (!isAuth && inviteCode!==gameState.inviteCode) { socket.emit('joinFail','يوزرنيمك غير مسجّل — سجّل أولاً'); return; }
+      // إذا اللاعب موجود مسبقاً (reconnect) — سمح له بدون فحص الكود
       const ex=Object.entries(gameState.players).find(([,p])=>p.name===name);
       if (ex) {
         const [oldId,pd]=ex;
@@ -222,6 +221,9 @@ function registerSocketEvents(io, db, playersDB, saveDB, getPlayerBadge, generat
         if (gameState.buttonPressedBy===oldId) gameState.buttonPressedBy=socket.id;
         broadcastState(); socket.emit('joinOk'); return;
       }
+      // لاعب جديد — تحقق من التسجيل أو الكود
+      const isAuth = dbUsername && db.prepare('SELECT id FROM players WHERE username=? COLLATE NOCASE').get(dbUsername);
+      if (!isAuth && inviteCode!==gameState.inviteCode && inviteCode!=='__auto__') { socket.emit('joinFail','يوزرنيمك غير مسجّل — سجّل أولاً'); return; }
       if (team!=='random' && getTeamCount(team)>=2) { socket.emit('joinFail','الفريق ممتلئ'); return; }
       const dbP = dbUsername ? db.prepare('SELECT * FROM players WHERE username=? COLLATE NOCASE').get(dbUsername) : null;
       gameState.players[socket.id]={
@@ -317,8 +319,7 @@ function registerSocketEvents(io, db, playersDB, saveDB, getPlayerBadge, generat
 
     socket.on('setXpMultiplier', (mult) => {
       if (socket.id!==gameState.host) return;
-      const valid = [1,2,3];
-      gameState.xpMultiplier = valid.includes(mult) ? mult : 1;
+      gameState.xpMultiplier = [1,2,3].includes(mult) ? mult : 1;
       broadcastState();
     });
 
@@ -361,31 +362,11 @@ function registerSocketEvents(io, db, playersDB, saveDB, getPlayerBadge, generat
                 pSock.emit('xpUpdate',{correct_answers:newCorrect,level:prestigeUp?1:newLevel,prestige:newPrestige,badge:getPlayerBadge(newPrestige)});
               }
               player.badge = getPlayerBadge(newPrestige);
-              // أرسل حدث XP لكل اللاعبين عشان يشوفون البار
-              io.emit('xpGain', {
-                playerId: pid,
-                playerName: player.name,
-                team: player.team,
-                xpGained,
-                multiplier: mult,
-                newCorrect,
-                level: prestigeUp?1:newLevel,
-                maxLevel: MAX_LEVEL,
-                answersPerLevel: ANSWERS_PER_LEVEL,
-              });
+              io.emit('xpGain',{playerId:pid,playerName:player.name,team:player.team,xpGained,multiplier:mult,newCorrect,level:prestigeUp?1:newLevel,maxLevel:MAX_LEVEL,answersPerLevel:ANSWERS_PER_LEVEL});
             }
           } catch(e){ console.error('XP error:',e); }
         } else {
-          // حتى لو ما عنده حساب، نرسل الحدث للـ animation
-          io.emit('xpGain', {
-            playerId: pid,
-            playerName: player.name,
-            team: player.team,
-            xpGained: 1 * mult,
-            multiplier: mult,
-            newCorrect: null,
-            level: null,
-          });
+          io.emit('xpGain',{playerId:pid,playerName:player.name,team:player.team,xpGained:1*mult,multiplier:mult,newCorrect:null,level:null});
         }
         const winner=checkWin();
         if (winner) {

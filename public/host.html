@@ -145,17 +145,14 @@ body{background:var(--bg);color:var(--txt);font-family:'Tajawal',sans-serif;min-
 .jbtn:disabled{opacity:.3;cursor:not-allowed;}
 
 /* MULTIPLIER BUTTONS */
-.mult-btn{
-  padding:7px 14px;border-radius:8px;border:2px solid var(--brd);
-  background:var(--sur2);color:var(--mut);font-family:'Tajawal',sans-serif;
-  font-size:.88rem;font-weight:900;cursor:pointer;transition:all .18s;
-}
+.mult-btn{padding:6px 13px;border-radius:8px;border:2px solid var(--brd);background:var(--sur2);color:var(--mut);font-family:'Tajawal',sans-serif;font-size:.85rem;font-weight:900;cursor:pointer;transition:all .18s;}
 .mult-btn:hover{border-color:var(--yellow);color:var(--yd);background:var(--yl);}
 .mult-btn.on[data-mult="1"]{border-color:var(--brd);background:var(--sur3);color:var(--txt);}
 .mult-btn.on[data-mult="2"]{border-color:#6366f1;background:#eef2ff;color:#4338ca;box-shadow:0 0 0 3px rgba(99,102,241,.2);}
-.mult-btn.on[data-mult="3"]{border-color:#f59e0b;background:#fef3c7;color:#92400e;box-shadow:0 0 0 3px rgba(245,158,11,.25);animation:multPulse 1s ease infinite alternate;}
-@keyframes multPulse{from{box-shadow:0 0 0 3px rgba(245,158,11,.25)}to{box-shadow:0 0 0 6px rgba(245,158,11,.45)}}
+.mult-btn.on[data-mult="3"]{border-color:#f59e0b;background:var(--yl);color:var(--yd);animation:multPulse 1s ease infinite alternate;}
+@keyframes multPulse{from{box-shadow:0 0 0 3px rgba(245,158,11,.2)}to{box-shadow:0 0 0 6px rgba(245,158,11,.45)}}
 
+/* Q TIMER */
 .q-timer-bar{height:5px;background:var(--brd);border-radius:3px;overflow:hidden;margin-top:6px;}
 .q-timer-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--yellow),var(--red));transition:width .5s linear;}
 
@@ -339,20 +336,6 @@ body{background:var(--bg);color:var(--txt);font-family:'Tajawal',sans-serif;min-
 
     <!-- LEFT SIDEBAR -->
     <div class="sidebar">
-      <div class="panel">
-        <div class="ptitle">رمز الدعوة</div>
-        <div style="display:flex;gap:6px">
-          <input type="text" class="s-inp" id="inv-inp" placeholder="الرمز">
-          <button class="btn btn-sm bp" onclick="saveInvite()">حفظ</button>
-        </div>
-        <div style="font-size:.72rem;color:var(--mut);margin-top:5px" id="inv-display"></div>
-      </div>
-
-      <div class="panel">
-        <div class="ptitle">أسماء الفريقين</div>
-        <div class="s-row"><div class="tdot" style="background:var(--green)"></div><input class="s-inp" id="gname-inp" placeholder="الفريق الأخضر" oninput="se('setTeamName',{team:'green',name:this.value})"></div>
-        <div class="s-row"><div class="tdot" style="background:var(--orange)"></div><input class="s-inp" id="oname-inp" placeholder="الفريق البرتقالي" oninput="se('setTeamName',{team:'orange',name:this.value})"></div>
-      </div>
 
       <div class="panel">
         <div class="ptitle">حجم الشبكة</div>
@@ -386,11 +369,12 @@ body{background:var(--bg);color:var(--txt);font-family:'Tajawal',sans-serif;min-
 
       <!-- Game area (hidden until playing) -->
       <div id="game-area" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%">
-        <!-- Cell + Q info -->
+
+        <!-- Cell + Q info + Timer -->
         <div style="display:flex;align-items:flex-start;gap:12px;width:100%">
           <div class="cell-display" id="cell-disp">—</div>
           <div style="flex:1">
-            <div id="q-text" style="font-size:.92rem;font-weight:700;color:var(--txt);margin-bottom:3px">اضغط خلية لاختيارها</div>
+            <div id="q-text" style="font-size:.95rem;font-weight:700;color:var(--txt);margin-bottom:3px;line-height:1.45">اضغط خلية لاختيارها</div>
             <div id="q-meta-host" style="font-size:.75rem;color:var(--mut)"></div>
             <div class="q-timer-bar"><div class="q-timer-fill" id="q-tfill" style="width:100%"></div></div>
           </div>
@@ -399,33 +383,73 @@ body{background:var(--bg);color:var(--txt);font-family:'Tajawal',sans-serif;min-
         <!-- Opponent banner -->
         <div class="opp-banner" id="opp-banner">⏱️ نافذة الفريق المنافس مفتوحة</div>
 
-        <!-- AI Questions panel -->
-        <div class="panel" id="q-panel" style="width:100%;display:none">
-          <div class="q-panel-header">
-            <div class="ptitle" style="margin:0">🤖 أسئلة الذكاء الاصطناعي</div>
-            <button class="btn btn-sm by" onclick="regenQ()" style="font-size:.75rem;padding:4px 10px">🔄 جديد</button>
+        <!-- QUESTIONS AREA: 2-column layout -->
+        <div id="q-panel" style="width:100%;display:none">
+          <div style="display:flex;gap:10px;align-items:flex-start;width:100%">
+
+            <!-- LEFT: filters + pick another -->
+            <div style="width:190px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;">
+              <div class="panel" style="padding:10px 12px">
+                <div class="ptitle" style="margin-bottom:8px">🎯 فلتر السؤال</div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <select class="ai-sel" id="q-cat" style="width:100%">
+                    <option value="عشوائي">📚 عشوائي</option>
+                    <option value="كروي">⚽ كروي</option>
+                    <option value="ديني">🕌 ديني</option>
+                    <option value="علوم">🔬 علوم</option>
+                    <option value="جغرافيا">🌍 جغرافيا</option>
+                    <option value="علمي">💡 علمي</option>
+                    <option value="ثقافي">🎭 ثقافي</option>
+                  </select>
+                  <select class="ai-sel" id="q-diff" style="width:100%">
+                    <option value="عشوائي">كل الصعوبات</option>
+                    <option value="سهل">سهل</option>
+                    <option value="متوسط">متوسط</option>
+                    <option value="صعب">صعب</option>
+                  </select>
+                  <button class="btn btn-sm by" onclick="regenQ()" style="width:100%;font-size:.78rem">🔄 سؤال جديد</button>
+                  <button class="btn btn-sm" onclick="toggleQPicker()" id="pick-btn" style="width:100%;font-size:.78rem">📋 اختر سؤال آخر</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT: active question card -->
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+              <div class="panel" id="active-q-wrap" style="padding:12px 14px">
+                <div class="active-q-label">✅ السؤال الحالي</div>
+                <div class="active-q-text" id="aq-text">—</div>
+                <div class="active-q-row">
+                  <div class="active-q-answer" id="aq-answer">—</div>
+                  <div class="active-q-hint" id="aq-hint">—</div>
+                </div>
+              </div>
+
+              <!-- Question picker drawer (hidden by default) -->
+              <div id="q-picker-drawer" style="display:none">
+                <div class="panel" style="padding:10px 12px">
+                  <div class="ptitle" style="margin-bottom:6px">اختر سؤالاً من القائمة</div>
+                  <div class="q-list" id="q-list"></div>
+                </div>
+              </div>
+            </div>
+
           </div>
-          <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
-            <select class="ai-sel" id="q-cat"><option value="عشوائي">📚 عشوائي</option><option value="كروي">⚽ كروي</option><option value="ديني">🕌 ديني</option><option value="علوم">🔬 علوم</option><option value="جغرافيا">🌍 جغرافيا</option><option value="علمي">💡 علمي</option><option value="ثقافي">🎭 ثقافي</option></select>
-            <select class="ai-sel" id="q-diff"><option value="متوسط">متوسط</option><option value="سهل">سهل</option><option value="صعب">صعب</option></select>
-          </div>
-          <div class="q-list" id="q-list"><div class="q-item loading">اختر خلية لتوليد الأسئلة...</div></div>
         </div>
 
         <!-- Grid -->
         <div class="grid-wrap" id="host-grid"></div>
 
-        <!-- Judge -->
-        <div class="judge-panel">
+        <!-- Judge panel — hidden until someone presses -->
+        <div class="judge-panel" id="judge-panel" style="display:none">
           <div>
-            <div class="judge-sub">اللاعب الضاغط:</div>
+            <div class="judge-sub">⚡ ضغط الزر:</div>
             <div class="judge-name" id="judge-name">—</div>
             <div class="judge-sub" id="judge-sub"></div>
           </div>
           <!-- XP Multiplier -->
-          <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
             <div style="font-size:.65rem;font-weight:700;color:var(--mut);letter-spacing:.5px">مضاعف XP</div>
-            <div style="display:flex;gap:5px;" id="xp-mult-btns">
+            <div style="display:flex;gap:5px">
               <button class="mult-btn on" data-mult="1" onclick="setMult(1)">x1</button>
               <button class="mult-btn" data-mult="2" onclick="setMult(2)">x2</button>
               <button class="mult-btn" data-mult="3" onclick="setMult(3)">x3</button>
@@ -433,10 +457,11 @@ body{background:var(--bg);color:var(--txt);font-family:'Tajawal',sans-serif;min-
             <div style="font-size:.7rem;color:var(--mut2)" id="mult-label">عادي</div>
           </div>
           <div class="judge-btns">
-            <button class="jbtn correct" id="jbtn-c" onclick="doJudge(true)" disabled>✅ صح</button>
-            <button class="jbtn wrong" id="jbtn-w" onclick="doJudge(false)" disabled>❌ غلط</button>
+            <button class="jbtn correct" id="jbtn-c" onclick="doJudge(true)">✅ صح</button>
+            <button class="jbtn wrong" id="jbtn-w" onclick="doJudge(false)">❌ غلط</button>
           </div>
         </div>
+
       </div>
     </div>
 
@@ -517,6 +542,12 @@ socket.on('questionExpired', () => AudioEngine.playExpire());
 // AI questions received
 socket.on('questionsReady', ({active, alternatives}) => {
   aiAlts = alternatives || [];
+  // الكارد الكبير
+  const aqText=document.getElementById('aq-text'), aqAns=document.getElementById('aq-answer'), aqHint=document.getElementById('aq-hint');
+  if(aqText) aqText.textContent = active?.text||'—';
+  if(aqAns)  aqAns.textContent  = active?.answer ? '✓ '+active.answer : '—';
+  if(aqHint) aqHint.textContent = active?.hint   ? '💡 '+active.hint   : '—';
+  // القائمة في الـ drawer
   renderQList([active, ...aiAlts]);
 });
 
@@ -528,37 +559,14 @@ socket.on('preGenDone',   ({total}) => { document.getElementById('pg-fill').styl
 // ── RENDER ────────────────────────────────────────────────────────────────
 function renderAll(state){
   const playing = state.phase==='playing' || state.phase==='roundEnd';
-
-  // Show/hide lobby notice vs game area
   document.getElementById('lobby-notice').style.display = playing ? 'none' : 'block';
   document.getElementById('game-area').style.display = playing ? 'flex' : 'none';
-  var fb=document.getElementById('q-filter-bar'); if(fb) fb.classList.toggle('active',playing);
 
-  // Invite
-  const invDisp = document.getElementById('inv-display');
-  if(invDisp) invDisp.textContent = 'الرمز: ' + state.inviteCode;
-  const invInp = document.getElementById('inv-inp');
-  if(invInp && document.activeElement!==invInp) invInp.value = state.inviteCode;
-
-  // Sync XP multiplier buttons
-  const mult = state.xpMultiplier || 1;
-  document.querySelectorAll('.mult-btn').forEach(b => b.classList.toggle('on', +b.dataset.mult===mult));
-  const multLabels = {1:'عادي', 2:'⚡ دبل XP', 3:'🔥 تريبل XP'};
-  const multLbl = document.getElementById('mult-label');
-  if(multLbl) multLbl.textContent = multLabels[mult] || '';
-
-  // Wins
-  // زر العشوائي
+  // wins
   var hasRandom=Object.values(state.players).some(function(p){ return p.team==='random'; });
   var rBtn=document.getElementById('random-btn'); if(rBtn) rBtn.style.display=hasRandom?'inline-flex':'none';
   document.getElementById('wins-g').textContent = '🟢 ' + state.wins.green;
   document.getElementById('wins-o').textContent = '🟠 ' + state.wins.orange;
-
-  // Team names
-  const gi = document.getElementById('gname-inp');
-  const oi = document.getElementById('oname-inp');
-  if(gi && document.activeElement!==gi) gi.value = state.teamNames.green;
-  if(oi && document.activeElement!==oi) oi.value = state.teamNames.orange;
 
   // Grid size buttons
   document.querySelectorAll('.sz-btn').forEach((b,i) => b.classList.toggle('on', [4,5,6,7][i]===state.gridSize));
@@ -570,22 +578,26 @@ function renderAll(state){
   const letter = sc ? state.grid[sc.row]?.[sc.col]?.letter : null;
   document.getElementById('cell-disp').textContent = letter || '—';
 
-  // Q text (full info for host)
+  // Q text (small display top)
   const qd = state.currentQuestionData;
-  document.getElementById('q-text').textContent = qd?.text && qd.text!=='⏳ جاري توليد السؤال...' ? qd.text : (qd?.text==='⏳ جاري توليد السؤال...' ? '⏳ جاري التوليد...' : 'اضغط خلية لاختيارها');
-  document.getElementById('q-meta-host').textContent = qd?.category && qd.category!=='—' ? `[${qd.category}] ${qd.difficulty} | 💡 ${qd.hint||'—'}` : '';
+  const qText = qd?.text && qd.text!=='⏳ جاري توليد السؤال...' ? qd.text : (qd?.text==='⏳ جاري توليد السؤال...' ? '⏳ جاري التوليد...' : 'اضغط خلية لاختيارها');
+  document.getElementById('q-text').textContent = qText;
+  document.getElementById('q-meta-host').textContent = qd?.category && qd.category!=='—' ? `[${qd.category}] ${qd.difficulty||''} | 💡 ${qd.hint||'—'}` : '';
+
+  // Active question big card
+  const aqText=document.getElementById('aq-text'), aqAns=document.getElementById('aq-answer'), aqHint=document.getElementById('aq-hint');
+  if(aqText) aqText.textContent = qd?.text && qd.text!=='⏳ جاري توليد السؤال...' ? qd.text : '—';
+  if(aqAns)  aqAns.textContent  = qd?.answer ? '✓ ' + qd.answer : '—';
+  if(aqHint) aqHint.textContent = qd?.hint   ? '💡 ' + qd.hint   : '—';
+
+  // Q panel visibility
+  const qPanel = document.getElementById('q-panel');
+  if(qPanel) qPanel.style.display = letter ? 'block' : 'none';
 
   // Q timer
   if(state.questionStartTime){
     const pct = Math.max(0, 100-(Date.now()-state.questionStartTime)/(5*60*1000)*100);
     document.getElementById('q-tfill').style.width = pct+'%';
-  }
-
-  // AI questions panel
-  const qPanel = document.getElementById('q-panel');
-  qPanel.style.display = letter ? 'block' : 'none';
-  if(letter && qd?.text==='⏳ جاري توليد السؤال...'){
-    document.getElementById('q-list').innerHTML = '<div class="q-item loading">⏳ جاري توليد الأسئلة...</div>';
   }
 
   // Opponent banner
@@ -604,28 +616,30 @@ function renderAll(state){
       true, null, state);
   }
 
-  // Judge
+  // Judge panel — show ONLY when someone pressed the button
   const pid = state.buttonPressedBy;
-  const jc = document.getElementById('jbtn-c');
-  const jw = document.getElementById('jbtn-w');
+  const judgePanel = document.getElementById('judge-panel');
   if(pid && state.players[pid]){
+    judgePanel.style.display = 'flex';
     const p = state.players[pid];
     document.getElementById('judge-name').textContent = p.name;
     document.getElementById('judge-name').style.color = p.team==='green' ? 'var(--green)' : 'var(--orange)';
     const secs = state.answerTimerEnd ? Math.max(0,Math.ceil((state.answerTimerEnd-Date.now())/1000)) : 0;
     document.getElementById('judge-sub').textContent = (p.team==='green'?state.teamNames.green:state.teamNames.orange) + (secs ? ` — ${secs}ث` : '');
-    jc.disabled = false; jw.disabled = false;
   } else {
-    document.getElementById('judge-name').textContent = '—';
-    document.getElementById('judge-sub').textContent = '';
-    jc.disabled = true; jw.disabled = true;
+    judgePanel.style.display = 'none';
   }
+
+  // XP multiplier sync
+  const mult = state.xpMultiplier || 1;
+  document.querySelectorAll('.mult-btn').forEach(b => b.classList.toggle('on', +b.dataset.mult===mult));
+  const multLabels = {1:'عادي', 2:'⚡ دبل XP', 3:'🔥 تريبل XP'};
+  const multLbl = document.getElementById('mult-label');
+  if(multLbl) multLbl.textContent = multLabels[mult]||'';
 
   // Players
   renderTeam('green', state);
   renderTeam('orange', state);
-
-  // Leaderboard
   renderLB(state);
 }
 
@@ -660,13 +674,13 @@ function renderLB(state){
 
 function renderQList(questions){
   const container = document.getElementById('q-list');
+  if(!container) return;
   if(!questions?.length){ container.innerHTML='<div class="q-item loading">لا توجد أسئلة</div>'; return; }
   container.innerHTML = questions.map((q,i) => `
     <div class="q-item${i===0?' on':''}" onclick="pickQ(${i})">
-      ${i===0 ? '<div style="font-size:.65rem;font-weight:700;color:var(--green);margin-bottom:4px">✅ السؤال المختار</div>' : ''}
       <div class="q-item-text">${q.text||'—'}</div>
-      <div class="q-item-answer">✓ الجواب: ${q.answer||'—'}</div>
-      <div class="q-item-hint">💡 تلميح: ${q.hint||'—'}</div>
+      <div class="q-item-answer">✓ ${q.answer||'—'}</div>
+      <div class="q-item-hint">💡 ${q.hint||'—'}</div>
       <div class="q-meta">
         <span class="qb ${q.category||'عام'}">${q.category||'عام'}</span>
         <span class="qb ${q.difficulty||'متوسط'}">${q.difficulty||'متوسط'}</span>
@@ -677,48 +691,55 @@ function renderQList(questions){
 function pickQ(idx){
   document.querySelectorAll('.q-item').forEach((el,i)=>el.classList.toggle('on',i===idx));
   if(idx>0) socket.emit('selectAlternativeQ', idx-1);
+  // أغلق الـ drawer بعد الاختيار
+  const drawer=document.getElementById('q-picker-drawer');
+  if(drawer){ drawer.style.display='none'; }
+  const btn=document.getElementById('pick-btn');
+  if(btn) btn.textContent='📋 اختر سؤال آخر';
+}
+
+function toggleQPicker(){
+  const drawer=document.getElementById('q-picker-drawer');
+  const btn=document.getElementById('pick-btn');
+  if(!drawer) return;
+  const open = drawer.style.display==='none'||drawer.style.display==='';
+  drawer.style.display = open ? 'block' : 'none';
+  if(btn) btn.textContent = open ? '✖ أغلق' : '📋 اختر سؤال آخر';
 }
 
 function regenQ(){
   const cat  = document.getElementById('q-cat')?.value  || 'عشوائي';
-  const diff = document.getElementById('q-diff')?.value || 'متوسط';
-  // sync global filter
-  const fc = document.getElementById('fi-cat');  if(fc)  fc.value  = cat;
-  const fd = document.getElementById('fi-diff'); if(fd)  fd.value = diff;
-  document.getElementById('q-list').innerHTML = '<div class="q-item loading">⏳ جاري توليد أسئلة جديدة...</div>';
+  const diff = document.getElementById('q-diff')?.value || 'عشوائي';
+  const listEl = document.getElementById('q-list');
+  if(listEl) listEl.innerHTML = '<div class="q-item loading">⏳ جاري توليد أسئلة جديدة...</div>';
+  // أغلق الـ drawer عند توليد جديد
+  const drawer=document.getElementById('q-picker-drawer');
+  if(drawer) drawer.style.display='none';
+  const btn=document.getElementById('pick-btn');
+  if(btn) btn.textContent='📋 اختر سؤال آخر';
   socket.emit('regenerateQuestion', {category: cat, difficulty: diff});
-}
-
-function applyFilter(){
-  const cat = document.getElementById('fi-cat')?.value || 'عشوائي';
-  const diff = document.getElementById('fi-diff')?.value || 'متوسط';
-  const qc = document.getElementById('q-cat'); if(qc) qc.value=cat;
-  const qd = document.getElementById('q-diff'); if(qd) qd.value=diff;
-  socket.emit('setAIPreferences', {category:cat, difficulty:diff});
-}
-
-function saveInvite(){
-  const v = document.getElementById('inv-inp').value.trim();
-  if(v) socket.emit('setInviteCode', v);
 }
 
 function setMult(n){
   socket.emit('setXpMultiplier', n);
   document.querySelectorAll('.mult-btn').forEach(b => b.classList.toggle('on', +b.dataset.mult===n));
-  const labels = {1:'عادي', 2:'⚡ دبل XP', 3:'🔥 تريبل XP'};
-  const el = document.getElementById('mult-label');
-  if(el) el.textContent = labels[n] || '';
+  const labels={1:'عادي',2:'⚡ دبل XP',3:'🔥 تريبل XP'};
+  const el=document.getElementById('mult-label'); if(el) el.textContent=labels[n]||'';
 }
+
+function applyFilter(){
+  const cat = document.getElementById('q-cat')?.value || 'عشوائي';
+  const diff = document.getElementById('q-diff')?.value || 'عشوائي';
+  socket.emit('setAIPreferences', {category:cat, difficulty:diff});
+}
+
+function setSize(s){ socket.emit('setGridSize', s); }
 
 function doJudge(correct){
   AudioEngine.resume();
   correct ? AudioEngine.playCorrect() : AudioEngine.playWrong();
   socket.emit('judge', correct);
-  if(GS?.buttonPressedBy && GS.players[GS.buttonPressedBy])
-    socket.emit('judgeResult', {correct, playerName: GS.players[GS.buttonPressedBy].name});
 }
-
-function setSize(s){ socket.emit('setGridSize', s); }
 
 // Refresh every 500ms for timers
 setInterval(() => { if(GS) renderAll(GS); }, 500);
