@@ -6298,7 +6298,7 @@ io.on('connection', (socket) => {
 // START
 // =====================================================
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server on port ${PORT}`);
   console.log(`ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? '✅ موجود (' + process.env.ANTHROPIC_API_KEY.slice(0,12) + '...)' : '❌ غير موجود'}`);
 });
