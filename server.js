@@ -5,6 +5,15 @@ const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
 
+// منع الكراش من أي خطأ غير متوقع
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+});
+
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
@@ -20,8 +29,14 @@ app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'host.html')));
 // JSON-based database (no compilation needed)
 const DB_FILE = path.join(__dirname, 'players.json');
 let playersDB = {};
-if (fs.existsSync(DB_FILE)) {
-  try { playersDB = JSON.parse(fs.readFileSync(DB_FILE,'utf8')); } catch(e) { playersDB = {}; }
+try {
+  if (fs.existsSync(DB_FILE)) {
+    const raw = fs.readFileSync(DB_FILE,'utf8');
+    if (raw && raw.trim()) playersDB = JSON.parse(raw);
+  }
+} catch(e) {
+  console.error('DB read error:', e.message);
+  playersDB = {};
 }
 function saveDB(){ fs.writeFileSync(DB_FILE, JSON.stringify(playersDB, null, 2)); }
 
