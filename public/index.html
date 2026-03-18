@@ -23,6 +23,33 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 @keyframes fadeOut{from{opacity:1}to{opacity:0;pointer-events:none}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
+/* ══ AUTH SCREEN ══ */
+#s-auth{background:var(--bg);z-index:200;}
+.auth-card{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:36px 36px;width:380px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.1);}
+.auth-logo{font-size:1.4rem;font-weight:900;background:linear-gradient(135deg,var(--green),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;text-align:center;}
+.auth-sub{font-size:.8rem;color:var(--muted);text-align:center;margin-bottom:22px;}
+.auth-tabs{display:flex;gap:0;margin-bottom:22px;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;}
+.auth-tab{flex:1;padding:9px;text-align:center;font-family:'Tajawal',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;background:var(--bg);color:var(--muted);border:none;transition:all .2s;}
+.auth-tab.on{background:var(--surface);color:var(--text);}
+.auth-inp{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:.95rem;outline:none;margin-bottom:10px;transition:border-color .2s;}
+.auth-inp:focus{border-color:var(--green);}
+.auth-inp-row{display:flex;gap:6px;align-items:center;}
+.auth-domain{font-size:.82rem;font-weight:700;color:var(--muted);white-space:nowrap;margin-bottom:10px;}
+.auth-btn{width:100%;padding:12px;border:none;border-radius:9px;background:linear-gradient(135deg,var(--green),var(--green-dark));color:#fff;font-family:'Tajawal',sans-serif;font-weight:900;font-size:1rem;cursor:pointer;box-shadow:0 4px 14px rgba(22,163,74,.3);transition:all .15s;margin-top:4px;}
+.auth-btn:hover{transform:translateY(-1px);}
+.auth-err{font-size:.82rem;color:#dc2626;min-height:18px;text-align:center;margin-top:4px;}
+.auth-skip{font-size:.75rem;color:var(--muted2);text-align:center;margin-top:12px;cursor:pointer;text-decoration:underline;}
+.profile-badge{display:inline-flex;align-items:center;gap:6px;background:var(--green-light);border:1.5px solid #86efac;border-radius:20px;padding:4px 12px;font-size:.82rem;font-weight:700;color:var(--green-dark);margin-bottom:14px;}
+
+/* ══ LEVEL UP POPUP ══ */
+#levelup-popup{display:none;position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none;}
+#levelup-popup.show{display:block;animation:lvlIn .5s cubic-bezier(.34,1.6,.64,1);}
+@keyframes lvlIn{from{opacity:0;transform:translateX(-50%) translateY(-30px) scale(.7)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+.lvl-card{background:linear-gradient(135deg,#fef3c7,#fff);border:2px solid #fcd34d;border-radius:16px;padding:14px 28px;text-align:center;box-shadow:0 8px 32px rgba(217,119,6,.3);}
+.lvl-title{font-size:.75rem;font-weight:700;color:#92400e;letter-spacing:1px;text-transform:uppercase;}
+.lvl-num{font-size:2.2rem;font-weight:900;color:#d97706;line-height:1.1;}
+.lvl-sub{font-size:.78rem;color:#92400e;}
+
 /* ══ STAGE 1: ESCAPE BUTTON ══ */
 #s-escape{background:var(--bg);}
 .escape-bg-circles{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
@@ -124,8 +151,42 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 </head>
 <body>
 
+<!-- STAGE 0: AUTH (تسجيل/دخول) -->
+<div class="stage active" id="s-auth">
+  <div class="auth-card">
+    <div class="auth-logo">حروف مع حسن</div>
+    <div class="auth-sub">سجّل حساب أو ادخل باليوزرنيم</div>
+    <div class="auth-tabs">
+      <button class="auth-tab" id="tab-login" onclick="switchTab('login')">دخول</button>
+      <button class="auth-tab on" id="tab-register" onclick="switchTab('register')">تسجيل جديد</button>
+    </div>
+
+    <!-- تسجيل -->
+    <div id="form-register">
+      <input class="auth-inp" id="reg-username" placeholder="اليوزرنيم (يظهر للاعبين)" maxlength="20">
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+        <input class="auth-inp" id="reg-email-local" placeholder="الإيميل" style="margin:0;flex:1">
+        <span class="auth-domain">@7snn.onion</span>
+      </div>
+      <input class="auth-inp" id="reg-password" type="password" placeholder="الباسورد (4 أحرف+)">
+      <input class="auth-inp" id="reg-title" placeholder="لقبك (مثلاً: الأسطورة، الرعب...)" maxlength="20">
+      <button class="auth-btn" onclick="doRegister()">✅ إنشاء حساب</button>
+      <div class="auth-err" id="reg-err"></div>
+    </div>
+
+    <!-- دخول -->
+    <div id="form-login" style="display:none">
+      <input class="auth-inp" id="login-username" placeholder="اليوزرنيم" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="auth-btn" onclick="doLogin()">🚀 دخول</button>
+      <div class="auth-err" id="login-err"></div>
+    </div>
+
+    <div class="auth-skip" onclick="skipAuth()">تخطي — العب كضيف</div>
+  </div>
+</div>
+
 <!-- STAGE 1: ESCAPE BUTTON -->
-<div class="stage active" id="s-escape">
+<div class="stage" id="s-escape">
   <div class="escape-bg-circles"><span></span><span></span><span></span></div>
   <div class="game-logo">
     حروف مع حسن
@@ -167,6 +228,85 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 <script>
 const socket = io({ reconnection:true });
 let savedCode='', playerName='', playerTeam='', joined=false;
+let dbUsername = ''; // اليوزرنيم من قاعدة البيانات
+
+// ── AUTH ─────────────────────────────────────────────────────────────────────
+function switchTab(tab){
+  document.getElementById('form-register').style.display = tab==='register'?'block':'none';
+  document.getElementById('form-login').style.display    = tab==='login'?'block':'none';
+  document.getElementById('tab-register').classList.toggle('on', tab==='register');
+  document.getElementById('tab-login').classList.toggle('on', tab==='login');
+}
+// افتح بتبويب التسجيل افتراضياً لو ما دخل قبل
+window.addEventListener('DOMContentLoaded', ()=>{
+  const saved = localStorage.getItem('hasan_username');
+  if(saved){ switchTab('login'); document.getElementById('login-username').value=saved; }
+  else switchTab('register');
+});
+
+async function doRegister(){
+  const username = document.getElementById('reg-username').value.trim();
+  const emailLocal= document.getElementById('reg-email-local').value.trim();
+  const password  = document.getElementById('reg-password').value;
+  const title     = document.getElementById('reg-title').value.trim();
+  const errEl     = document.getElementById('reg-err');
+  errEl.textContent='';
+  if(!username||!emailLocal||!password){ errEl.textContent='اكمل البيانات'; return; }
+  const email = emailLocal+'@7snn.onion';
+  const res = await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,email,password,title})});
+  const data = await res.json();
+  if(!data.ok){ errEl.textContent=data.msg; return; }
+  localStorage.setItem('hasan_username', username);
+  dbUsername = username;
+  goToEscape();
+}
+
+async function doLogin(){
+  const username = document.getElementById('login-username').value.trim();
+  const errEl    = document.getElementById('login-err');
+  errEl.textContent='';
+  if(!username){ errEl.textContent='أدخل اليوزرنيم'; return; }
+  const res = await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username})});
+  const data = await res.json();
+  if(!data.ok){ errEl.textContent=data.msg; return; }
+  localStorage.setItem('hasan_username', username);
+  dbUsername = username;
+  // اعرض بيانات اللاعب
+  const p = data.profile;
+  showProfileSnippet(p);
+}
+
+function showProfileSnippet(p){
+  const card = document.querySelector('.auth-card');
+  card.innerHTML = `
+    <div class="auth-logo">أهلاً ${p.username}!</div>
+    <div style="text-align:center;margin:16px 0">
+      <div style="font-size:2.5rem">${p.badge||'🎮'}</div>
+      <div style="font-weight:900;font-size:1.1rem;margin:6px 0">${p.title||'لاعب'}</div>
+      <div style="color:var(--muted);font-size:.82rem">ليفل ${p.level} ${p.prestige>0?'• بريستيج '+p.prestige:''}</div>
+      <div style="display:flex;gap:14px;justify-content:center;margin-top:10px;font-size:.82rem;color:var(--muted)">
+        <span>✓ ${p.correct_answers} إجابة</span>
+        <span>🎮 ${p.total_matches} مباراة</span>
+      </div>
+    </div>
+    <button class="auth-btn" onclick="goToEscape()">▶️ الدخول للعبة</button>
+  `;
+}
+
+function skipAuth(){
+  dbUsername = '';
+  goToEscape();
+}
+
+function goToEscape(){
+  const auth = document.getElementById('s-auth');
+  auth.classList.add('fade-out');
+  setTimeout(()=>{
+    auth.classList.remove('active','fade-out');
+    document.getElementById('s-escape').classList.add('active');
+    setTimeout(startIndexTutorial, 800);
+  }, 450);
+}
 
 // ── ESCAPE BUTTON LOGIC ──────────────────────────────────────────────────────
 const btn = document.getElementById('escape-btn');
@@ -175,7 +315,6 @@ let escapeEnabled = false;
 let moveCount = 0;
 const MAX_MOVES = 12;
 
-// Wait 1s then start escaping on hover
 setTimeout(()=>{ escapeEnabled=true; }, 900);
 
 btn.addEventListener('mouseenter', moveAway);
@@ -322,7 +461,7 @@ function pickTeam(team,btn){
   addLine(''); addLine('> اخترت: '+(team==='green'?'الفريق الأخضر 🟢':'الفريق البرتقالي 🟠'));
   setTimeout(()=>{
     addLine('> جاري الانضمام...');
-    socket.emit('playerJoin',{name:playerName,team,inviteCode:savedCode});
+    socket.emit('playerJoin',{name:playerName,team,inviteCode:savedCode,dbUsername:dbUsername||null});
   },600);
 }
 

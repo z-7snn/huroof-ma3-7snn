@@ -150,6 +150,28 @@ body{background:var(--bg);color:var(--txt);font-family:'Tajawal',sans-serif;min-
 
 /* LOBBY */
 #lobby-notice{background:var(--yl);border:1.5px solid #fcd34d;border-radius:12px;padding:20px 24px;text-align:center;font-weight:700;color:var(--yd);margin:20px;font-size:1rem;}
+
+/* SETUP SCREEN */
+#setup-screen{min-height:100vh;display:none;align-items:center;justify-content:center;background:var(--bg);}
+#setup-screen.active{display:flex;}
+.setup-card{background:var(--sur);border:1.5px solid var(--brd);border-radius:20px;padding:36px 40px;width:520px;max-width:96vw;box-shadow:var(--shm);}
+.setup-title{font-size:1.3rem;font-weight:900;margin-bottom:4px;background:linear-gradient(135deg,var(--green),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.setup-sub{font-size:.82rem;color:var(--mut);margin-bottom:28px;}
+.setup-section{margin-bottom:22px;}
+.setup-label{font-size:.72rem;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;}
+.team-setup-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.color-swatch{width:38px;height:38px;border-radius:50%;border:3px solid rgba(255,255,255,.8);cursor:pointer;flex-shrink:0;box-shadow:0 2px 10px rgba(0,0,0,.2);transition:transform .15s;position:relative;}
+.color-swatch:hover{transform:scale(1.12);}
+.color-swatch input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;border:none;padding:0;}
+.team-name-inp{flex:1;background:var(--sur2);border:1.5px solid var(--brd);border-radius:8px;padding:9px 12px;color:var(--txt);font-family:'Tajawal',sans-serif;font-size:.95rem;font-weight:700;outline:none;}
+.team-name-inp:focus{border-color:var(--yellow);}
+.setup-size-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.setup-sz-btn{padding:10px;border-radius:8px;border:1.5px solid var(--brd);background:var(--sur2);color:var(--mut);font-family:'Tajawal',sans-serif;font-size:.9rem;cursor:pointer;transition:all .15s;font-weight:700;}
+.setup-sz-btn.on{border-color:var(--yellow);color:var(--yd);background:var(--yl);}
+.setup-invite-inp{width:100%;background:var(--sur2);border:1.5px solid var(--brd);border-radius:8px;padding:9px 12px;color:var(--txt);font-family:'Tajawal',sans-serif;font-size:1rem;font-weight:700;outline:none;text-align:center;letter-spacing:3px;}
+.setup-invite-inp:focus{border-color:var(--yellow);}
+.setup-start-btn{width:100%;padding:14px;border:none;border-radius:10px;background:var(--green);color:#fff;font-family:'Tajawal',sans-serif;font-weight:900;font-size:1.1rem;cursor:pointer;box-shadow:0 6px 0 var(--gd),0 8px 20px rgba(22,163,74,.3);transition:all .15s;margin-top:8px;}
+.setup-start-btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--gd);}
 </style>
 </head>
 <body>
@@ -162,6 +184,52 @@ body{background:var(--bg);color:var(--txt);font-family:'Tajawal',sans-serif;min-
     <input class="login-inp" type="password" id="code-inp" placeholder="الكود السري" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="login-btn" onclick="doLogin()">دخول كهوست</button>
     <div id="login-err"></div>
+  </div>
+</div>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-title">🎮 إعداد اللعبة</div>
+    <div class="setup-sub">اختر الإعدادات قبل ما تبدأ اللعبة</div>
+
+    <!-- الفريقين -->
+    <div class="setup-section">
+      <div class="setup-label">اسم ولون الفريقين</div>
+      <!-- أخضر -->
+      <div class="team-setup-row">
+        <div class="color-swatch" id="green-swatch" style="background:#16a34a">
+          <input type="color" id="green-color-picker" value="#16a34a" oninput="updateTeamColor('green',this.value)">
+        </div>
+        <input class="team-name-inp" id="setup-gname" placeholder="اسم الفريق الأول" value="الفريق الأخضر">
+      </div>
+      <!-- برتقالي -->
+      <div class="team-setup-row">
+        <div class="color-swatch" id="orange-swatch" style="background:#ea580c">
+          <input type="color" id="orange-color-picker" value="#ea580c" oninput="updateTeamColor('orange',this.value)">
+        </div>
+        <input class="team-name-inp" id="setup-oname" placeholder="اسم الفريق الثاني" value="الفريق البرتقالي">
+      </div>
+    </div>
+
+    <!-- حجم الشبكة -->
+    <div class="setup-section">
+      <div class="setup-label">حجم الشبكة</div>
+      <div class="setup-size-grid">
+        <button class="setup-sz-btn" onclick="setupSetSize(4,this)">4×4</button>
+        <button class="setup-sz-btn on" onclick="setupSetSize(5,this)">5×5</button>
+        <button class="setup-sz-btn" onclick="setupSetSize(6,this)">6×6</button>
+        <button class="setup-sz-btn" onclick="setupSetSize(7,this)">7×7</button>
+      </div>
+    </div>
+
+    <!-- رمز الدعوة -->
+    <div class="setup-section">
+      <div class="setup-label">رمز الدعوة</div>
+      <input class="setup-invite-inp" id="setup-invite" placeholder="الرمز" value="حسن">
+    </div>
+
+    <button class="setup-start-btn" onclick="finishSetup()">✅ جاهز — ابدأ اللعبة</button>
   </div>
 </div>
 
@@ -180,6 +248,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Tajawal',sans-serif;min-
       <button class="btn btn-sm" onclick="se('newGrid')">🔄 شبكة جديدة</button>
       <button class="btn btn-sm" onclick="se('restartGame')">♻️ إعادة</button>
       <button class="btn btn-sm br" onclick="se('resetButton')">🔁 ريست الزر</button>
+      <button class="btn btn-sm by" id="random-assign-btn" onclick="assignRandom()" style="display:none">🎲 وزّع العشوائيين</button>
     </div>
   </div>
 
@@ -297,7 +366,10 @@ body{background:var(--bg);color:var(--txt);font-family:'Tajawal',sans-serif;min-
   <div class="win-trophy">🏆</div>
   <div style="font-size:2.4rem;font-weight:900" id="win-team-name"></div>
   <div style="color:var(--mut);font-weight:700;font-size:1rem">فاز بالجولة! 🎉</div>
-  <button class="btn btn-sm bp" style="margin-top:8px;padding:12px 28px;font-size:1rem" onclick="se('newRound');document.getElementById('win-ov').classList.remove('on')">🎯 جولة جديدة</button>
+  <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;justify-content:center;">
+    <button class="btn btn-sm by" style="padding:11px 22px;font-size:.95rem" onclick="se('showMVP')">⭐ أظهر MVP</button>
+    <button class="btn btn-sm bp" style="padding:11px 22px;font-size:.95rem" onclick="se('newRound');document.getElementById('win-ov').classList.remove('on')">🎯 جولة جديدة</button>
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -313,10 +385,38 @@ function doLogin(){ socket.emit('hostLogin', document.getElementById('code-inp')
 document.getElementById('code-inp').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
 socket.on('hostOk', async()=>{
   document.getElementById('login-screen').style.display='none';
-  document.getElementById('dashboard').style.display='flex';
+  document.getElementById('setup-screen').classList.add('active');
   try{ localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false}); }catch(e){}
 });
 socket.on('hostFail',()=>{ document.getElementById('login-err').textContent='الكود غير صحيح ❌'; });
+
+// SETUP FUNCTIONS
+let setupSize = 5;
+function setupSetSize(s, btn){
+  setupSize = s;
+  document.querySelectorAll('.setup-sz-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function updateTeamColor(team, color){
+  document.getElementById(team+'-swatch').style.background = color;
+}
+function finishSetup(){
+  const gname  = document.getElementById('setup-gname').value.trim()  || 'الفريق الأخضر';
+  const oname  = document.getElementById('setup-oname').value.trim()  || 'الفريق البرتقالي';
+  const gcolor = document.getElementById('green-color-picker').value;
+  const ocolor = document.getElementById('orange-color-picker').value;
+  const invite = document.getElementById('setup-invite').value.trim() || 'حسن';
+  // أرسل الإعدادات للسيرفر
+  se('setTeamName',  {team:'green',  name:gname});
+  se('setTeamName',  {team:'orange', name:oname});
+  se('setTeamColor', {team:'green',  color:gcolor});
+  se('setTeamColor', {team:'orange', color:ocolor});
+  se('setGridSize',  setupSize);
+  se('setInviteCode', invite);
+  // انتقل للـ dashboard
+  document.getElementById('setup-screen').classList.remove('active');
+  document.getElementById('dashboard').style.display='flex';
+}
 
 // STATE
 socket.on('gameState',state=>{ GS=state; renderAll(state); setTimeout(connectToPlayers,500); });
@@ -344,6 +444,11 @@ function renderAll(state){
 
   document.getElementById('wins-g').textContent='🟢 '+state.wins.green;
   document.getElementById('wins-o').textContent='🟠 '+state.wins.orange;
+
+  // زر التوزيع العشوائي — يظهر لو فيه لاعبين اختاروا عشوائي
+  const hasRandom = Object.values(state.players).some(p=>p.team==='random');
+  const randomBtn = document.getElementById('random-assign-btn');
+  if(randomBtn) randomBtn.style.display = hasRandom ? 'inline-flex' : 'none';
 
   const gi=document.getElementById('gname-inp');
   const oi=document.getElementById('oname-inp');
@@ -486,6 +591,7 @@ function doJudge(correct){
   if(GS?.buttonPressedBy&&GS.players[GS.buttonPressedBy])
     socket.emit('judgeResult',{correct,playerName:GS.players[GS.buttonPressedBy].name});
 }
+function assignRandom(){ se('assignRandomTeams'); }
 function setSize(s){ socket.emit('setGridSize',s); }
 setInterval(()=>{ if(GS) renderAll(GS); },400);
 
