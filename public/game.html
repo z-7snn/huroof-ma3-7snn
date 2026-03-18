@@ -169,6 +169,35 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
   .lb-panel{display:none;}
   .players-panel{display:none;}
 }
+
+/* LEVEL UP POPUP */
+#levelup-popup{display:none;position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none;}
+#levelup-popup.show{display:block;animation:lvlPop .5s cubic-bezier(.34,1.6,.64,1);}
+@keyframes lvlPop{from{opacity:0;transform:translateX(-50%) translateY(-20px) scale(.6)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+
+/* TUTORIAL */
+#tutorial-overlay{display:none;position:fixed;inset:0;z-index:9000;background:rgba(5,8,18,.88);backdrop-filter:blur(6px);align-items:center;justify-content:center;cursor:pointer;}
+#tutorial-overlay.active{display:flex;}
+.tut-card{background:#fff;border-radius:22px;padding:36px 40px;max-width:400px;width:92vw;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.35);animation:tutIn .4s cubic-bezier(.34,1.4,.64,1);pointer-events:none;position:relative;}
+@keyframes tutIn{from{opacity:0;transform:scale(.82) translateY(30px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.tut-exit{animation:tutOut .3s ease forwards;}
+@keyframes tutOut{from{opacity:1}to{opacity:0;transform:scale(.88) translateY(-20px)}}
+.tut-icon{font-size:3.8rem;margin-bottom:12px;line-height:1;display:block;}
+.tut-step{font-size:.7rem;font-weight:700;color:#94a3b8;letter-spacing:1px;margin-bottom:8px;}
+.tut-title{font-size:1.35rem;font-weight:900;color:#1e293b;margin-bottom:10px;}
+.tut-body{font-size:.92rem;color:#475569;line-height:1.65;margin-bottom:18px;}
+.tut-dots{display:flex;gap:6px;justify-content:center;margin-bottom:14px;}
+.tut-dot{width:8px;height:8px;border-radius:50%;background:#e2e8f0;transition:all .3s;}
+.tut-dot.on{background:#16a34a;width:20px;}
+.tut-hint{font-size:.75rem;color:#94a3b8;}
+.tut-skip{position:absolute;top:14px;left:16px;font-size:.72rem;color:#94a3b8;pointer-events:all;cursor:pointer;padding:4px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;}
+
+/* WIN OVERLAY FIX */
+#win-overlay.active{display:flex;}
+#mvp-wrap{display:none;flex-direction:column;align-items:center;gap:4px;background:var(--yellow-light);border:2px solid #fcd34d;border-radius:16px;padding:16px 32px;text-align:center;}
+#mvp-wrap.mvp-reveal{display:flex;animation:mvpIn .6s cubic-bezier(.34,1.7,.64,1);}
+@keyframes mvpIn{from{opacity:0;transform:scale(.3) rotate(-12deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+
 </style>
 </head>
 <body>
@@ -183,9 +212,7 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
   <div class="topbar">
     <div class="topbar-title">حروف مع حسن <span style="font-size:.6rem;font-weight:400;-webkit-text-fill-color:var(--muted);color:var(--muted)">(النسخة الرسمية)</span></div>
     <div class="topbar-question" id="topbar-question">—</div>
-    <div class="topbar-badges" id="topbar-badges">
-      <span id="my-prestige-badge" style="font-size:1.1rem"></span>
-    </div>
+    <div class="topbar-badges" id="topbar-badges"><span id="my-prestige-badge" style="font-size:1.1rem"></span></div>
   </div>
   <div class="q-timer-bar"><div class="q-timer-fill" id="q-timer-fill"></div></div>
 
@@ -251,10 +278,14 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
 <div id="win-overlay">
   <div class="win-trophy">🏆</div>
   <div class="win-trophy" style="font-size:2.5rem;font-weight:900" id="win-name"></div>
-  <div style="color:var(--muted);font-weight:700">فاز بالجولة!</div>
-  <div id="mvp-wrap" style="display:none;background:var(--yellow-light);border:2px solid #fcd34d;border-radius:12px;padding:12px 24px;text-align:center">
-    <div style="font-size:1.2rem">⭐ MVP</div>
-    <div id="mvp-name" style="font-size:1.1rem;font-weight:900"></div>
+  <div style="color:var(--muted);font-weight:700">فاز بالجولة! 🎉</div>
+  <div id="mvp-wrap">
+    <div style="font-size:2rem">⭐</div>
+    <div style="font-size:.78rem;font-weight:700;color:var(--muted)">MVP الجولة</div>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+      <span id="mvp-team"></span>
+      <span id="mvp-name" style="font-size:1.3rem;font-weight:900"></span>
+    </div>
   </div>
 </div>
 
@@ -278,22 +309,15 @@ socket.on('connect',()=>{
   const name=sessionStorage.getItem('playerName');
   const team=sessionStorage.getItem('playerTeam');
   const code=sessionStorage.getItem('inviteCode');
-  const dbUser=localStorage.getItem('hasan_username')||'';
   if(name&&team&&code){
     myName=name; myTeam=team;
     document.getElementById('lobby-msg').textContent=`⏳ مرحباً ${name}...`;
-    socket.emit('playerJoin',{name,team,inviteCode:code,dbUsername:dbUser||null});
-    // حمّل الشارة
-    if(dbUser){
-      fetch('/api/profile/'+encodeURIComponent(dbUser)).then(r=>r.json()).then(d=>{
-        if(d.ok){ const el=document.getElementById('my-prestige-badge'); if(el) el.textContent=d.profile.badge||''; }
-      }).catch(()=>{});
-    }
+    socket.emit('playerJoin',{name,team,inviteCode:code});
   } else { window.location.href='/'; }
 });
 
 socket.on('joinFail',msg=>{ if(msg?.includes('رمز')){ sessionStorage.clear(); window.location.href='/'; }});
-socket.on('gameState',state=>{ gameState=state; if(!myTeam){myTeam=sessionStorage.getItem('playerTeam');myName=sessionStorage.getItem('playerName');} renderGame(state); setTimeout(startPeerConnections,500); });
+socket.on('gameState',state=>{ gameState=state; if(state.phase==='playing'&&!localStorage.getItem('tut_game_done')) setTimeout(startGameTutorial,800); if(!myTeam){myTeam=sessionStorage.getItem('playerTeam');myName=sessionStorage.getItem('playerName');} renderGame(state); setTimeout(startPeerConnections,500); });
 socket.on('buttonPressed',({playerId,playerName,team})=>{ AudioEngine.playButtonPress(); showOverlay(playerId,playerName,team); });
 socket.on('roundWin',winner=>{ AudioEngine.playWin(); showWinOverlay(winner); });
 socket.on('hintApproved',()=>{ AudioEngine.playHint(); });
@@ -316,6 +340,7 @@ socket.on('judgeResult',({correct, playerName})=>{
 // ─── RENDER ──────────────────────────────────────────────────────────────────
 function renderGame(state){
   const playing = state.phase==='playing'||state.phase==='roundEnd';
+  if(state.phase==='playing') closeWinOverlay();
   document.getElementById('lobby-wait').classList.toggle('active',!playing);
   document.getElementById('game-screen').style.display = playing?'block':'none';
   if(!playing) return;
@@ -403,7 +428,7 @@ function renderPlayersPanel(team, state){
     return `<div class="${rowClass}">
       <div class="${circleClass}">${circleContent}</div>
       <div class="p-info">
-        <div class="p-name">${p.badge||''}${p.name}${isMe?' (أنت)':''}</div>
+        <div class="p-name">${p.name}${isMe?' (أنت)':''}</div>
         <div class="p-stats">
           <span class="p-correct">✓${p.correctCount||0}</span>
           <span class="p-wrong">✗${p.wrongCount||0}</span>
@@ -605,62 +630,120 @@ async function startPeerConnections(){
   }
 }
 
-// ── LEVEL UP & PRESTIGE ───────────────────────────────────────────────────────
-socket.on('levelUp', ({level}) => {
-  showLevelUpPopup({ type:'level', level });
-});
+// LEVEL UP & PRESTIGE
+socket.on('levelUp', function(d){ showLevelUpPopup({type:'level',level:d.level}); });
+socket.on('prestigeUp', function(d){ showLevelUpPopup({type:'prestige',prestige:d.prestige,badge:d.badge}); });
+socket.on('xpUpdate', function(d){ var el=document.getElementById('my-prestige-badge'); if(el) el.textContent=d.badge||''; });
+socket.on('newRound', function(){ closeWinOverlay(); });
+socket.on('showMVP', function(){ revealMVP(); });
 
-socket.on('prestigeUp', ({prestige, badge}) => {
-  showLevelUpPopup({ type:'prestige', prestige, badge });
-});
-
-socket.on('xpUpdate', ({level, prestige, badge}) => {
-  // حدّث شارة اللاعب في الـ topbar
-  const el = document.getElementById('my-prestige-badge');
-  if(el) el.textContent = badge||'';
-});
-
-function showLevelUpPopup({type, level, prestige, badge}){
-  const popup = document.getElementById('levelup-popup');
-  const card  = document.getElementById('levelup-card');
-  if(type==='prestige'){
-    card.innerHTML = `
-      <div style="font-size:.72rem;font-weight:700;color:#7c3aed;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">🎊 بريستيج جديد!</div>
-      <div style="font-size:3.5rem;line-height:1.1">${badge}</div>
-      <div style="font-size:1.1rem;font-weight:900;color:#1e293b;margin-top:4px">بريستيج ${prestige}</div>
-      <div style="font-size:.78rem;color:#64748b;margin-top:2px">رجعت ليفل 1 — بطل! 🔥</div>
-    `;
-    card.style.borderColor='#a78bfa';
-    card.style.background='linear-gradient(135deg,#f5f3ff,#fff)';
+function showLevelUpPopup(d){
+  var popup=document.getElementById('levelup-popup');
+  var card=document.getElementById('levelup-card');
+  if(d.type==='prestige'){
+    card.innerHTML='<div style="font-size:.72rem;font-weight:700;color:#7c3aed;letter-spacing:1px;margin-bottom:4px">🎊 بريستيج جديد!</div>'
+      +'<div style="font-size:3.5rem;line-height:1.1">'+d.badge+'</div>'
+      +'<div style="font-size:1.1rem;font-weight:900;color:#1e293b;margin-top:4px">بريستيج '+d.prestige+'</div>'
+      +'<div style="font-size:.78rem;color:#64748b;margin-top:2px">رجعت ليفل 1 — بطل! 🔥</div>';
+    card.style.borderColor='#a78bfa'; card.style.background='linear-gradient(135deg,#f5f3ff,#fff)';
   } else {
-    card.innerHTML = `
-      <div style="font-size:.72rem;font-weight:700;color:#d97706;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">⬆️ ليفل أپ!</div>
-      <div style="font-size:3rem;font-weight:900;color:#d97706;line-height:1.1">${level}</div>
-      <div style="font-size:.78rem;color:#92400e;margin-top:2px">وصلت ليفل ${level} 🎉</div>
-    `;
-    card.style.borderColor='#fcd34d';
-    card.style.background='linear-gradient(135deg,#fef3c7,#fff)';
+    card.innerHTML='<div style="font-size:.72rem;font-weight:700;color:#d97706;letter-spacing:1px;margin-bottom:4px">⬆️ ليفل أپ!</div>'
+      +'<div style="font-size:3rem;font-weight:900;color:#d97706;line-height:1.1">'+d.level+'</div>'
+      +'<div style="font-size:.78rem;color:#92400e;margin-top:2px">وصلت ليفل '+d.level+' 🎉</div>';
+    card.style.borderColor='#fcd34d'; card.style.background='linear-gradient(135deg,#fef3c7,#fff)';
   }
-  popup.classList.remove('show');
-  void popup.offsetWidth;
-  popup.classList.add('show');
-  setTimeout(()=> popup.classList.remove('show'), 3500);
+  popup.classList.remove('show'); void popup.offsetWidth; popup.classList.add('show');
+  setTimeout(function(){ popup.classList.remove('show'); }, 3500);
   AudioEngine.playHint();
 }
+
+function showWinOverlay(winner){
+  var ov=document.getElementById('win-overlay');
+  var el=document.getElementById('win-name');
+  var mvpWrap=document.getElementById('mvp-wrap');
+  mvpWrap.classList.remove('mvp-reveal'); mvpWrap.dataset.ready='';
+  ov.classList.add('active');
+  el.textContent=gameState&&gameState.teamNames?gameState.teamNames[winner]:(winner==='green'?'الأخضر':'البرتقالي');
+  el.style.color=winner==='green'?'var(--green)':'var(--orange)';
+  if(gameState){
+    var top=Object.entries(gameState.players).map(function(e){ return Object.assign({},e[1],{net:(e[1].correctCount||0)-(e[1].wrongCount||0)}); }).sort(function(a,b){ return b.net-a.net; })[0];
+    if(top){
+      document.getElementById('mvp-name').textContent=top.name+' ('+top.net+'+)';
+      var mt=document.getElementById('mvp-team'); if(mt) mt.textContent=top.team==='green'?'🟢':'🟠';
+      mvpWrap.dataset.ready='1';
+    }
+  }
+}
+function revealMVP(){
+  var mvpWrap=document.getElementById('mvp-wrap');
+  if(mvpWrap.dataset.ready!=='1') return;
+  mvpWrap.classList.add('mvp-reveal'); AudioEngine.playHint();
+}
+function closeWinOverlay(){
+  var ov=document.getElementById('win-overlay'); if(ov) ov.classList.remove('active');
+  var mvpWrap=document.getElementById('mvp-wrap'); if(mvpWrap){ mvpWrap.classList.remove('mvp-reveal'); mvpWrap.dataset.ready=''; }
+}
+
+// تحميل الشارة
+(function(){
+  var dbUser=localStorage.getItem('hasan_username')||'';
+  if(dbUser){
+    fetch('/api/profile/'+encodeURIComponent(dbUser)).then(function(r){ return r.json(); }).then(function(d){
+      if(d.ok){ var el=document.getElementById('my-prestige-badge'); if(el) el.textContent=d.profile.badge||''; }
+    }).catch(function(){});
+  }
+})();
+
+// GAME TUTORIAL
+var GAME_STEPS=[
+  {icon:'⚡',title:'الزر — اضغطه بسرعة!',body:'لما يختار الهوست حرف يطلع السؤال. أول واحد يضغط الزر الكبير يجاوب!'},
+  {icon:'🏷️',title:'التصنيف والصعوبة',body:'فوق الشاشة تشوف تصنيف السؤال وصعوبته.'},
+  {icon:'🟢🟠',title:'معنى الألوان',body:'الخلايا الخضراء للأخضر، البرتقالية للبرتقالي. راقب الشبكة دايماً.'},
+  {icon:'💡',title:'التلميح والإلغاء',body:'بعد 30 ثانية زر تلميح. بعد دقيقتين زر إلغاء — بموافقة الكل.'},
+  {icon:'🏆',title:'كيف يفوز فريقك؟',body:'الأخضر يوصل يمين-يسار ↔ — البرتقالي فوق-تحت ↕<br>كل إجابة صح = خلية!'},
+];
+function startGameTutorial(){
+  if(localStorage.getItem('tut_game_done')==='1') return;
+  showGameTutorial(GAME_STEPS,'tut_game_done');
+}
+var _gTutSteps=[],_gTutIdx=0,_gTutKey='';
+function showGameTutorial(steps,key){
+  _gTutSteps=steps;_gTutIdx=0;_gTutKey=key;
+  document.getElementById('tutorial-overlay').classList.add('active');
+  renderGTutStep();
+  document.getElementById('tutorial-overlay').onclick=nextGTutStep;
+}
+function renderGTutStep(){
+  var s=_gTutSteps[_gTutIdx],total=_gTutSteps.length;
+  document.getElementById('tut-card').innerHTML=
+    '<span class="tut-skip" onclick="closeGTutorial(event)">تخطي ✕</span>'
+    +'<span class="tut-icon">'+s.icon+'</span>'
+    +'<div class="tut-step">'+(_gTutIdx+1)+' / '+total+'</div>'
+    +'<div class="tut-title">'+s.title+'</div>'
+    +'<div class="tut-body">'+s.body+'</div>'
+    +'<div class="tut-dots">'+_gTutSteps.map(function(_,i){ return '<div class="tut-dot'+(i===_gTutIdx?' on':'')+'"></div>'; }).join('')+'</div>'
+    +'<div class="tut-hint">'+(_gTutIdx===total-1?'اضغط للبدء ✅':'اضغط للخطوة التالية →')+'</div>';
+  var c=document.getElementById('tut-card'); c.classList.remove('tut-exit'); void c.offsetWidth;
+}
+function nextGTutStep(e){
+  if(e.target.classList.contains('tut-skip')) return;
+  if(_gTutIdx>=_gTutSteps.length-1){ closeGTutorial(); return; }
+  var c=document.getElementById('tut-card'); c.classList.add('tut-exit');
+  setTimeout(function(){ _gTutIdx++; renderGTutStep(); },280);
+}
+function closeGTutorial(e){ if(e) e.stopPropagation(); localStorage.setItem(_gTutKey,'1'); document.getElementById('tutorial-overlay').classList.remove('active'); }
+
 </script>
 
 <!-- LEVEL UP POPUP -->
-<div id="levelup-popup" style="display:none;position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none;">
+<div id="levelup-popup">
   <div id="levelup-card" style="background:linear-gradient(135deg,#fef3c7,#fff);border:2px solid #fcd34d;border-radius:18px;padding:16px 32px;text-align:center;box-shadow:0 8px 32px rgba(217,119,6,.35);min-width:180px;"></div>
 </div>
-<style>
-#levelup-popup.show{display:block;animation:lvlPop .5s cubic-bezier(.34,1.6,.64,1);}
-@keyframes lvlPop{from{opacity:0;transform:translateX(-50%) translateY(-20px) scale(.6)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
-</style>
 
 <!-- TUTORIAL OVERLAY -->
 <div id="tutorial-overlay">
   <div class="tut-card" id="tut-card"></div>
 </div>
+
 </body>
 </html>

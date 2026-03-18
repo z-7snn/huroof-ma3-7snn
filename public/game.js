@@ -33,9 +33,11 @@ const AudioEngine = (() => {
     resume();
     const c = getCtx();
     const now = c.currentTime;
-    playTone(440, 0.1, 'square', 0.2, now);
-    playTone(660, 0.1, 'square', 0.2, now + 0.1);
-    playTone(880, 2.8, 'sine', 0.15, now + 0.2);
+    playTone(120, 0.15, 'sawtooth', 0.4, now);
+    playTone(440, 0.12, 'square', 0.25, now + 0.05);
+    playTone(660, 0.12, 'square', 0.22, now + 0.15);
+    playTone(880, 0.18, 'sine', 0.2, now + 0.25);
+    playTone(1100, 3.0, 'sine', 0.1, now + 0.35);
   }
 
   function playExpire() {
@@ -102,24 +104,8 @@ function buildHexGrid(grid, container, hexSize, onCellClick, highlightSelected, 
   const svgW = size * W * 0.75 + W * 0.25 + 20;
   const svgH = size * H + H * 0.5 + 20;
 
-  // Wrapper div with colored borders: green=left/right, orange=top/bottom
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = `
-    display:inline-block;position:relative;
-    border-top:6px solid #ea580c;
-    border-bottom:6px solid #ea580c;
-    border-left:6px solid #16a34a;
-    border-right:6px solid #16a34a;
-    border-radius:12px;
-    box-shadow:
-      0 0 0 2px #fff,
-      -8px 0 16px rgba(22,163,74,.25),
-      8px 0 16px rgba(22,163,74,.25),
-      0 -8px 16px rgba(234,88,12,.25),
-      0 8px 16px rgba(234,88,12,.25);
-    overflow:hidden;
-  `;
-
+  wrapper.style.cssText = 'display:inline-block;border-top:5px solid #ea580c;border-bottom:5px solid #ea580c;border-left:5px solid #16a34a;border-right:5px solid #16a34a;border-radius:10px;overflow:hidden;box-shadow:-6px 0 14px rgba(22,163,74,.2),6px 0 14px rgba(22,163,74,.2),0 -6px 14px rgba(234,88,12,.2),0 6px 14px rgba(234,88,12,.2);';
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
   svg.setAttribute('width', svgW);
@@ -143,21 +129,19 @@ function buildHexGrid(grid, container, hexSize, onCellClick, highlightSelected, 
       let stroke = '#cbd5e1';
       let strokeW = '1.5';
 
-      if (cell.owner === 'green') { fill = '#bbf7d0'; stroke = '#16a34a'; strokeW = '2'; }
-      else if (cell.owner === 'orange') { fill = '#fed7aa'; stroke = '#ea580c'; strokeW = '2'; }
+      let glowFilter = '';
+      if (cell.owner === 'green') { fill = '#bbf7d0'; stroke = '#16a34a'; strokeW = '3'; glowFilter='drop-shadow(0 0 5px rgba(22,163,74,.6))'; }
+      else if (cell.owner === 'orange') { fill = '#fed7aa'; stroke = '#ea580c'; strokeW = '3'; glowFilter='drop-shadow(0 0 5px rgba(234,88,12,.6))'; }
 
       const isSelected = state && state.selectedCell && state.selectedCell.row === r && state.selectedCell.col === c;
-      if (isSelected) { stroke = '#d97706'; strokeW = '3'; fill = '#fef3c7'; }
+      if (isSelected) { stroke = '#d97706'; strokeW = '3.5'; fill = '#fef3c7'; glowFilter='drop-shadow(0 0 8px #facc15)'; }
 
       path.setAttribute('fill', fill);
       path.setAttribute('stroke', stroke);
       path.setAttribute('stroke-width', strokeW);
 
-      if (isSelected) {
-        path.style.filter = 'drop-shadow(0 0 8px #facc15)';
-        // Pulsing animation
-        path.style.animation = 'hexPulse 1.5s ease-in-out infinite';
-      }
+      if (glowFilter) path.style.filter = glowFilter;
+      if (isSelected) path.style.animation = 'hexPulse 1.5s ease-in-out infinite';
 
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       text.setAttribute('x', cx);
@@ -195,36 +179,14 @@ function buildHexGrid(grid, container, hexSize, onCellClick, highlightSelected, 
   svg.insertBefore(style, svg.firstChild);
 
   wrapper.appendChild(svg);
-
   // تسميات الاتجاهات
-  const orangeT = document.createElement('div');
-  orangeT.style.cssText = 'font-size:.65rem;font-weight:900;color:#ea580c;text-align:center;margin-bottom:3px;letter-spacing:1px;';
-  orangeT.textContent = '↑ برتقالي ↑';
-  const orangeB = document.createElement('div');
-  orangeB.style.cssText = 'font-size:.65rem;font-weight:900;color:#ea580c;text-align:center;margin-top:3px;letter-spacing:1px;';
-  orangeB.textContent = '↓ برتقالي ↓';
-
-  const greenR = document.createElement('div');
-  greenR.style.cssText = 'position:absolute;top:50%;left:-36px;transform:translateY(-50%) rotate(90deg);font-size:.6rem;font-weight:900;color:#16a34a;white-space:nowrap;';
-  greenR.textContent = '← أخضر →';
-  const greenL = document.createElement('div');
-  greenL.style.cssText = 'position:absolute;top:50%;right:-36px;transform:translateY(-50%) rotate(-90deg);font-size:.6rem;font-weight:900;color:#16a34a;white-space:nowrap;';
-  greenL.textContent = '← أخضر →';
-
-  const midRow = document.createElement('div');
-  midRow.style.cssText = 'position:relative;display:inline-block;';
-  midRow.appendChild(greenR);
-  midRow.appendChild(greenL);
-  midRow.appendChild(wrapper);
-
-  const outerWrap = document.createElement('div');
-  outerWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;';
-  outerWrap.appendChild(orangeT);
-  outerWrap.appendChild(midRow);
-  outerWrap.appendChild(orangeB);
-
-  container.innerHTML = '';
-  container.appendChild(outerWrap);
+  const orangeT=document.createElement('div'); orangeT.style.cssText='font-size:.62rem;font-weight:900;color:#ea580c;text-align:center;margin-bottom:2px;'; orangeT.textContent='↑ برتقالي ↑';
+  const orangeB=document.createElement('div'); orangeB.style.cssText='font-size:.62rem;font-weight:900;color:#ea580c;text-align:center;margin-top:2px;'; orangeB.textContent='↓ برتقالي ↓';
+  const greenR=document.createElement('div'); greenR.style.cssText='position:absolute;top:50%;left:-34px;transform:translateY(-50%) rotate(90deg);font-size:.58rem;font-weight:900;color:#16a34a;white-space:nowrap;'; greenR.textContent='← اخضر →';
+  const greenL=document.createElement('div'); greenL.style.cssText='position:absolute;top:50%;right:-34px;transform:translateY(-50%) rotate(-90deg);font-size:.58rem;font-weight:900;color:#16a34a;white-space:nowrap;'; greenL.textContent='← اخضر →';
+  const midRow=document.createElement('div'); midRow.style.cssText='position:relative;display:inline-block;'; midRow.appendChild(greenR); midRow.appendChild(greenL); midRow.appendChild(wrapper);
+  const outer=document.createElement('div'); outer.style.cssText='display:flex;flex-direction:column;align-items:center;'; outer.appendChild(orangeT); outer.appendChild(midRow); outer.appendChild(orangeB);
+  container.innerHTML=''; container.appendChild(outer);
 }
 
 // ===== LEADERBOARD =====

@@ -2,18 +2,105 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const Database = require('better-sqlite3');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public', 'host.html')));
+app.use(express.json());
+app.use(express.static(path.join(__dirname)));
+app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'host.html')));
+
+
+// =====================================================
+// DATABASE
+// =====================================================
+const db = new Database(path.join(__dirname, 'players.db'));
+db.exec(`
+  CREATE TABLE IF NOT EXISTS players (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL COLLATE NOCASE,
+    email TEXT UNIQUE NOT NULL COLLATE NOCASE,
+    password_hash TEXT NOT NULL,
+    title TEXT DEFAULT 'لاعب',
+    level INTEGER DEFAULT 1,
+    prestige INTEGER DEFAULT 0,
+    correct_answers INTEGER DEFAULT 0,
+    total_matches INTEGER DEFAULT 0,
+    best_round INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+const PRESTIGE_BADGES  = ['','🥉','🥈','🥇','💎','🔥','⚡','🌟','👑','🏆','🐐'];
+const ANSWERS_PER_LEVEL = 5;
+const MAX_LEVEL = 30;
+function getPlayerBadge(p){ return PRESTIGE_BADGES[p||0] || ''; }
+
+// =====================================================
+// AUTH REST API
+// =====================================================
+app.post('/api/register', async (req,res) => {
+  const { username, email, password, title } = req.body;
+  if (!username||!email||!password) return res.json({ok:false,msg:'بيانات ناقصة'});
+  if (!email.endsWith('@7snn.onion'))  return res.json({ok:false,msg:'الإيميل لازم يكون @7snn.onion'});
+  if (username.length<2||username.length>20) return res.json({ok:false,msg:'اليوزرنيم بين 2-20 حرف'});
+  if (password.length<4) return res.json({ok:false,msg:'الباسورد 4 أحرف على الأقل'});
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    db.prepare('INSERT INTO players (username,email,password_hash,title) VALUES (?,?,?,?)').run(
+      username.trim(), email.trim().toLowerCase(), hash, title||'لاعب'
+    );
+    res.json({ok:true});
+  } catch(e) {
+    if(e.message.includes('UNIQUE')){
+      if(e.message.includes('username')) return res.json({ok:false,msg:'اليوزرنيم محجوز'});
+      if(e.message.includes('email'))    return res.json({ok:false,msg:'الإيميل مسجّل مسبقاً'});
+    }
+    res.json({ok:false,msg:'خطأ في السيرفر'});
+  }
+});
+
+app.post('/api/login', (req,res) => {
+  const { username } = req.body;
+  if (!username) return res.json({ok:false,msg:'أدخل اليوزرنيم'});
+  const p = db.prepare('SELECT * FROM players WHERE username=? COLLATE NOCASE').get(username.trim());
+  if (!p) return res.json({ok:false,msg:'اليوزرنيم غير موجود — سجّل أولاً'});
+  res.json({ok:true, profile:{
+    username:p.username, title:p.title,
+    level:p.level, prestige:p.prestige,
+    badge:getPlayerBadge(p.prestige),
+    correct_answers:p.correct_answers,
+    total_matches:p.total_matches,
+    best_round:p.best_round
+  }});
+});
+
+app.get('/api/profile/:username', (req,res) => {
+  const p = db.prepare('SELECT * FROM players WHERE username=? COLLATE NOCASE').get(req.params.username);
+  if (!p) return res.json({ok:false});
+  res.json({ok:true, profile:{
+    username:p.username, title:p.title,
+    level:p.level, prestige:p.prestige,
+    badge:getPlayerBadge(p.prestige),
+    correct_answers:p.correct_answers,
+    total_matches:p.total_matches, best_round:p.best_round
+  }});
+});
+
+app.post('/api/update-title', (req,res) => {
+  const {username,title} = req.body;
+  if(!username||!title) return res.json({ok:false});
+  db.prepare('UPDATE players SET title=? WHERE username=? COLLATE NOCASE').run(title,username);
+  res.json({ok:true});
+});
 
 // =====================================================
 // CONSTANTS
 // =====================================================
-const ARABIC_LETTERS = ['أ','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و'];
+const ARABIC_LETTERS = ['أ','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي'];
 const HOST_CODE          = process.env.HOST_CODE || 'Tty3201';
 const BUTTON_ANSWER_TIME = 5000;
 const TEAM_TIMEOUT_MS    = 10000;
@@ -22,7 +109,7 @@ const CANCEL_VOTE_AFTER  = 2 * 60 * 1000;
 const QUESTION_EXPIRE    = 5 * 60 * 1000;
 
 // =====================================================
-// QUESTIONS DATABASE (270 سؤال - 27 حرف)
+// QUESTIONS DATABASE (776 سؤال)
 const QUESTIONS_DB = {
   "أ": [
     {
@@ -5540,6 +5627,7 @@ let gameState = {
   gridSize: 5,
   grid: [],
   teamNames: { green: 'الفريق الأخضر', orange: 'الفريق البرتقالي' },
+  teamColors: { green: '#16a34a', orange: '#ea580c' },
   players: {},
   host: null,
   selectedCell: null,
@@ -5742,9 +5830,12 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
-  socket.on('playerJoin', ({ name, team, inviteCode }) => {
-    if (inviteCode!==gameState.inviteCode) { socket.emit('joinFail','رمز الدعوة غير صحيح'); return; }
-    const ex=Object.entries(gameState.players).find(([,p])=>p.name===name&&p.team===team);
+  socket.on('playerJoin', ({ name, team, inviteCode, dbUsername }) => {
+    const isAuth = dbUsername && db.prepare('SELECT id FROM players WHERE username=? COLLATE NOCASE').get(dbUsername);
+    if (!isAuth && inviteCode!==gameState.inviteCode) {
+      socket.emit('joinFail','يوزرنيمك غير مسجّل — سجّل أولاً'); return;
+    }
+    const ex=Object.entries(gameState.players).find(([,p])=>p.name===name);
     if (ex) {
       const [oldId,pd]=ex;
       delete gameState.players[oldId];
@@ -5752,13 +5843,36 @@ io.on('connection', (socket) => {
       if (gameState.buttonPressedBy===oldId) gameState.buttonPressedBy=socket.id;
       broadcastState(); socket.emit('joinOk'); return;
     }
-    if (getTeamCount(team)>=2) { socket.emit('joinFail','الفريق ممتلئ'); return; }
-    gameState.players[socket.id]={ name, team, score:0, correctCount:0, wrongCount:0, muted:false, deafened:false, surveyDone:false };
+    if (team!=='random' && getTeamCount(team)>=2) { socket.emit('joinFail','الفريق ممتلئ'); return; }
+    const dbP = dbUsername ? db.prepare('SELECT * FROM players WHERE username=? COLLATE NOCASE').get(dbUsername) : null;
+    gameState.players[socket.id]={
+      name, team, score:0, correctCount:0, wrongCount:0, muted:false, deafened:false, surveyDone:false,
+      dbUsername: dbUsername||null,
+      title: dbP?.title||'',
+      level: dbP?.level||1,
+      prestige: dbP?.prestige||0,
+      badge: getPlayerBadge(dbP?.prestige||0)
+    };
     broadcastState(); socket.emit('joinOk');
   });
 
-  socket.on('setTeamName', ({team,name}) => { if (socket.id!==gameState.host) return; gameState.teamNames[team]=name; broadcastState(); });
-  socket.on('setGridSize', size => { if (socket.id!==gameState.host) return; gameState.gridSize=size; gameState.grid=generateGrid(size); broadcastState(); });
+  socket.on('setTeamName',  ({team,name})  => { if (socket.id!==gameState.host) return; gameState.teamNames[team]=name;  broadcastState(); });
+  socket.on('setTeamColor', ({team,color}) => { if (socket.id!==gameState.host) return; gameState.teamColors[team]=color; broadcastState(); });
+  socket.on('setGridSize',  size           => { if (socket.id!==gameState.host) return; gameState.gridSize=size; gameState.grid=generateGrid(size); broadcastState(); });
+
+  socket.on('assignRandomTeams', () => {
+    if (socket.id!==gameState.host) return;
+    const randPlayers = Object.entries(gameState.players)
+      .filter(([,p])=>p.team==='random').map(([id])=>id).sort(()=>Math.random()-.5);
+    const half = Math.ceil(randPlayers.length/2);
+    randPlayers.forEach((id,i)=>{ gameState.players[id].team = i<half?'green':'orange'; });
+    broadcastState();
+    io.emit('teamsAssigned', Object.fromEntries(
+      Object.entries(gameState.players).map(([id,p])=>[id,{name:p.name,team:p.team}])
+    ));
+  });
+
+  socket.on('showMVP', () => { if(socket.id!==gameState.host) return; io.emit('showMVP'); });
 
   socket.on('newGrid', () => {
     if (socket.id!==gameState.host) return;
@@ -5859,9 +5973,37 @@ io.on('connection', (socket) => {
       gameState.lastWrongTeam=null; gameState.timeoutGiven={};
       gameState.cancelVoteActive=false; gameState.cancelVotes={};
       resetButtonState();
+      // XP & LEVEL UP
+      if (player.dbUsername) {
+        try {
+          const dbP = db.prepare('SELECT * FROM players WHERE username=? COLLATE NOCASE').get(player.dbUsername);
+          if (dbP) {
+            const newCorrect = dbP.correct_answers + 1;
+            const newLevel   = Math.min(Math.floor(newCorrect / ANSWERS_PER_LEVEL) + 1, MAX_LEVEL);
+            const leveledUp  = newLevel > dbP.level;
+            let newPrestige  = dbP.prestige, prestigeUp = false;
+            if (newLevel >= MAX_LEVEL && dbP.level < MAX_LEVEL && dbP.prestige < 10) {
+              newPrestige++; prestigeUp = true;
+            }
+            db.prepare('UPDATE players SET correct_answers=?,level=?,prestige=? WHERE username=? COLLATE NOCASE')
+              .run(newCorrect, prestigeUp?1:newLevel, newPrestige, player.dbUsername);
+            const pSock = [...io.sockets.sockets.values()].find(s=>s.id===pid);
+            if (pSock) {
+              if (prestigeUp) pSock.emit('prestigeUp',{prestige:newPrestige,badge:getPlayerBadge(newPrestige)});
+              else if (leveledUp) pSock.emit('levelUp',{level:newLevel});
+              pSock.emit('xpUpdate',{correct_answers:newCorrect,level:prestigeUp?1:newLevel,prestige:newPrestige,badge:getPlayerBadge(newPrestige)});
+            }
+            player.badge = getPlayerBadge(newPrestige);
+          }
+        } catch(e){ console.error('XP error:',e); }
+      }
       const winner=checkWin();
-      if (winner) { gameState.wins[winner]++; gameState.phase='roundEnd'; broadcastState(); io.emit('roundWin',winner); }
-      else broadcastState();
+      if (winner) {
+        Object.values(gameState.players).forEach(p=>{
+          if(p.dbUsername) db.prepare('UPDATE players SET total_matches=total_matches+1 WHERE username=? COLLATE NOCASE').run(p.dbUsername);
+        });
+        gameState.wins[winner]++; gameState.phase='roundEnd'; broadcastState(); io.emit('roundWin',winner);
+      } else broadcastState();
     } else {
       player.wrongCount++;
       applyWrongAnswer(player.team);
@@ -5914,6 +6056,7 @@ io.on('connection', (socket) => {
 
   socket.on('newRound', () => {
     if(socket.id!==gameState.host) return;
+    io.emit('newRound');
     clearAllTimers(); gameState.phase='playing';
     gameState.grid=generateGrid(gameState.gridSize);
     gameState.selectedCell=null; gameState.currentQuestion=null;
