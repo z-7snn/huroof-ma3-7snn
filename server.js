@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const fs = require('fs');
 
 const app = express();
@@ -62,23 +62,24 @@ function getPlayerBadge(p){ return PRESTIGE_BADGES[p||0] || ''; }
 // =====================================================
 // AUTH REST API
 // =====================================================
-app.post('/api/register', async (req,res) => {
+app.post('/api/register', (req,res) => {
   const { username, email, password, title } = req.body;
   if (!username||!email||!password) return res.json({ok:false,msg:'بيانات ناقصة'});
   if (!email.endsWith('@7snn.onion'))  return res.json({ok:false,msg:'الإيميل لازم يكون @7snn.onion'});
   if (username.length<2||username.length>20) return res.json({ok:false,msg:'اليوزرنيم بين 2-20 حرف'});
   if (password.length<4) return res.json({ok:false,msg:'الباسورد 4 أحرف على الأقل'});
   try {
-    const hash = await bcrypt.hash(password, 10);
+    const hash = crypto.createHash('sha256').update(password + 'hasan_salt_7oroof').digest('hex');
     db.prepare('INSERT INTO players (username,email,password_hash,title) VALUES (?,?,?,?)').run(
       username.trim(), email.trim().toLowerCase(), hash, title||'لاعب'
     );
     res.json({ok:true});
   } catch(e) {
-    if(e.message.includes('UNIQUE')){
+    if(e.message&&e.message.includes('UNIQUE')){
       if(e.message.includes('username')) return res.json({ok:false,msg:'اليوزرنيم محجوز'});
       if(e.message.includes('email'))    return res.json({ok:false,msg:'الإيميل مسجّل مسبقاً'});
     }
+    console.error('Register error:',e.message);
     res.json({ok:false,msg:'خطأ في السيرفر'});
   }
 });
