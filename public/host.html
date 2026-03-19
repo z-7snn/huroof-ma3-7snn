@@ -613,7 +613,9 @@ function renderAll(state){
   if(state.grid && state.grid.length){
     buildHexGrid(state.grid, document.getElementById('host-grid'), 46,
       (r,c) => { if(!state.grid[r][c].owner) socket.emit('selectCell',{row:r,col:c}); },
-      true, null, state);
+      true, null, state,
+      (r,c) => { socket.emit('resetCell',{row:r,col:c}); },
+      (r,c) => { showAssignMenu(r,c); });
   }
 
   // Judge panel — show ONLY when someone pressed the button
@@ -808,6 +810,24 @@ function applyQFilter(){
 // RANDOM ASSIGN & MVP
 function assignRandom(){ se('assignRandomTeams'); }
 
+
+function showAssignMenu(row,col){
+  // نحذف أي قائمة قديمة
+  const old=document.getElementById('assign-menu'); if(old) old.remove();
+  const menu=document.createElement('div');
+  menu.id='assign-menu';
+  menu.style.cssText='position:fixed;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.15);display:flex;gap:8px;';
+  menu.innerHTML='<button onclick="doAssign('+row+','+col+',\'green\')" style="padding:8px 16px;border-radius:7px;border:none;background:#dcfce7;color:#14532d;font-weight:700;cursor:pointer;font-family:Tajawal,sans-serif">🟢 أخضر</button><button onclick="doAssign('+row+','+col+',\'orange\')" style="padding:8px 16px;border-radius:7px;border:none;background:#ffedd5;color:#7c2d12;font-weight:700;cursor:pointer;font-family:Tajawal,sans-serif">🟠 برتقالي</button><button onclick="doAssign('+row+','+col+',null)" style="padding:8px 16px;border-radius:7px;border:none;background:#f1f5f9;color:#64748b;font-weight:700;cursor:pointer;font-family:Tajawal,sans-serif">❌ إلغاء</button>';
+  // نضعه في منتصف الشاشة
+  menu.style.top='50%'; menu.style.left='50%'; menu.style.transform='translate(-50%,-50%)';
+  document.body.appendChild(menu);
+  setTimeout(()=>{ document.addEventListener('click',()=>{ const m=document.getElementById('assign-menu'); if(m) m.remove(); },{once:true}); },100);
+}
+function doAssign(row,col,team){
+  const menu=document.getElementById('assign-menu'); if(menu) menu.remove();
+  if(team===null){ socket.emit('resetCell',{row,col}); }
+  else { socket.emit('assignCell',{row,col,team}); }
+}
 </script>
 </body>
 </html>
