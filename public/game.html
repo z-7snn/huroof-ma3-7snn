@@ -591,7 +591,7 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
       <div class="my-btn-section">
         <div class="answer-cd" id="answer-cd"></div>
 
-        <div class="big-btn-wrap idle" id="my-big-btn" onclick="pressMyButton()">
+        <div class="big-btn-wrap idle" id="my-big-btn">
           <div class="big-btn-inner" id="my-big-btn-inner">🔒</div>
           <div class="btn-damage-overlay" id="btn-damage"></div>
         </div>
@@ -1217,7 +1217,25 @@ function showXpPopup(d){
   _xpTimer=setTimeout(()=>{ popup.classList.remove('show'); popup.classList.add('hide'); },3500);
 }
 
-// ── LOOP ──
+// ── ربط الزر الكبير (مرة واحدة فقط) ──
+(function(){
+  const bigBtn=document.getElementById('my-big-btn');
+  let lastPress=0;
+  function handlePress(e){
+    e.preventDefault();
+    const now=Date.now();
+    if(now-lastPress<300) return; // منع التكرار السريع
+    lastPress=now;
+    pressMyButton();
+  }
+  bigBtn.addEventListener('touchstart', handlePress, {passive:false});
+  bigBtn.addEventListener('click', function(e){
+    // تجاهل click إذا جاء من touchstart
+    if(Date.now()-lastPress<300) return;
+    lastPress=Date.now();
+    pressMyButton();
+  });
+})();
 setInterval(()=>{
   if(!gameState) return;
   renderTimeouts(gameState);
