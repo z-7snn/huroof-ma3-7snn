@@ -612,9 +612,9 @@ function renderAll(state){
   // Grid
   if(state.grid && state.grid.length){
     buildHexGrid(state.grid, document.getElementById('host-grid'), 46,
-      (r,c) => { if(!state.grid[r][c].owner) socket.emit('selectCell',{row:r,col:c}); },
+      (r,c) => { showAssignMenu(r,c); },
       true, null, state,
-      (r,c) => { socket.emit('resetCell',{row:r,col:c}); },
+      (r,c) => { showAssignMenu(r,c); },
       (r,c) => { showAssignMenu(r,c); });
   }
 
@@ -812,21 +812,52 @@ function assignRandom(){ se('assignRandomTeams'); }
 
 
 function showAssignMenu(row,col){
-  // نحذف أي قائمة قديمة
   const old=document.getElementById('assign-menu'); if(old) old.remove();
+
+  // إذا الخلية ملونة → ارجعها بيضاء مباشرة بدون منيو
+  if(GS && GS.grid[row] && GS.grid[row][col] && GS.grid[row][col].owner){
+    socket.emit('resetCell',{row,col});
+    return;
+  }
+
+  // خلية بيضاء → طلع المنيو
+  const overlay=document.createElement('div');
+  overlay.id='assign-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9998;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);';
+
   const menu=document.createElement('div');
   menu.id='assign-menu';
-  menu.style.cssText='position:fixed;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.15);display:flex;gap:8px;';
-  menu.innerHTML='<button onclick="doAssign('+row+','+col+',\'green\')" style="padding:8px 16px;border-radius:7px;border:none;background:#dcfce7;color:#14532d;font-weight:700;cursor:pointer;font-family:Tajawal,sans-serif">🟢 أخضر</button><button onclick="doAssign('+row+','+col+',\'orange\')" style="padding:8px 16px;border-radius:7px;border:none;background:#ffedd5;color:#7c2d12;font-weight:700;cursor:pointer;font-family:Tajawal,sans-serif">🟠 برتقالي</button><button onclick="doAssign('+row+','+col+',null)" style="padding:8px 16px;border-radius:7px;border:none;background:#f1f5f9;color:#64748b;font-weight:700;cursor:pointer;font-family:Tajawal,sans-serif">❌ إلغاء</button>';
-  // نضعه في منتصف الشاشة
-  menu.style.top='50%'; menu.style.left='50%'; menu.style.transform='translate(-50%,-50%)';
-  document.body.appendChild(menu);
-  setTimeout(()=>{ document.addEventListener('click',()=>{ const m=document.getElementById('assign-menu'); if(m) m.remove(); },{once:true}); },100);
+  menu.style.cssText='background:#fff;border-radius:16px;padding:20px;z-index:9999;box-shadow:0 16px 48px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:10px;min-width:220px;';
+
+  const letter = GS?.grid[row]?.[col]?.letter || '؟';
+  menu.innerHTML=`
+    <div style="text-align:center;font-size:2rem;font-weight:900;color:#1e293b;margin-bottom:4px">${letter}</div>
+    <div style="text-align:center;font-size:.78rem;color:#64748b;margin-bottom:4px">اختر خيار للخلية</div>
+    <button onclick="doAssign(${row},${col},'green')" style="padding:12px 16px;border-radius:10px;border:2px solid #86efac;background:#dcfce7;color:#14532d;font-weight:900;font-size:1rem;cursor:pointer;font-family:Tajawal,sans-serif;transition:all .15s;" onmouseover="this.style.background='#bbf7d0'" onmouseout="this.style.background='#dcfce7'">🟢 أعطِ للأخضر</button>
+    <button onclick="doAssign(${row},${col},'orange')" style="padding:12px 16px;border-radius:10px;border:2px solid #fdba74;background:#ffedd5;color:#7c2d12;font-weight:900;font-size:1rem;cursor:pointer;font-family:Tajawal,sans-serif;transition:all .15s;" onmouseover="this.style.background='#fed7aa'" onmouseout="this.style.background='#ffedd5'">🟠 أعطِ للبرتقالي</button>
+    <button onclick="doAssign(${row},${col},'select')" style="padding:12px 16px;border-radius:10px;border:2px solid #e2e8f0;background:#f8fafc;color:#1e293b;font-weight:900;font-size:1rem;cursor:pointer;font-family:Tajawal,sans-serif;transition:all .15s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">🔲 حدد بس</button>
+    <button onclick="closeAssignMenu()" style="padding:8px;border-radius:8px;border:none;background:transparent;color:#94a3b8;font-size:.85rem;cursor:pointer;font-family:Tajawal,sans-serif;">إلغاء ✕</button>
+  `;
+
+  overlay.appendChild(menu);
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',(e)=>{ if(e.target===overlay) closeAssignMenu(); });
 }
+
+function closeAssignMenu(){
+  const ov=document.getElementById('assign-overlay'); if(ov) ov.remove();
+  const m=document.getElementById('assign-menu'); if(m) m.remove();
+}
+
 function doAssign(row,col,team){
-  const menu=document.getElementById('assign-menu'); if(menu) menu.remove();
-  if(team===null){ socket.emit('resetCell',{row,col}); }
-  else { socket.emit('assignCell',{row,col,team}); }
+  closeAssignMenu();
+  if(team==='select'){
+    // حدد بس — يشتغل السؤال عادي
+    socket.emit('selectCell',{row,col});
+  } else {
+    // أعطِ للفريق مباشرة
+    socket.emit('assignCell',{row,col,team});
+  }
 }
 </script>
 </body>
