@@ -430,11 +430,79 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
 .tut-hint{font-size:.75rem;color:#94a3b8;}
 .tut-skip{position:absolute;top:14px;left:16px;font-size:.72rem;color:#94a3b8;pointer-events:all;cursor:pointer;padding:4px 8px;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc;}
 
-@media(max-width:700px){
-  .game-wrap{grid-template-columns:1fr;}
-  .lb-panel{display:none;}
-  .right-panel{display:none;}
+/* MVP OVERLAY */
+#mvp-overlay{
+  display:none;position:fixed;inset:0;z-index:3000;
+  background:rgba(0,0,0,.85);
+  backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;flex-direction:column;gap:0;
 }
+#mvp-overlay.active{display:flex;animation:mvpBgIn .5s ease;}
+@keyframes mvpBgIn{from{opacity:0}to{opacity:1}}
+
+.mvp-card{
+  background:linear-gradient(145deg,#1e1b4b,#312e81,#1e1b4b);
+  border:3px solid #facc15;
+  border-radius:28px;
+  padding:40px 48px;
+  text-align:center;
+  box-shadow:0 0 80px rgba(250,204,21,.4),0 0 30px rgba(250,204,21,.2);
+  animation:mvpCardIn .6s cubic-bezier(.34,1.5,.64,1);
+  position:relative;overflow:hidden;
+  min-width:300px;
+}
+@keyframes mvpCardIn{from{opacity:0;transform:scale(.3) rotate(-10deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+
+.mvp-stars-bg{
+  position:absolute;inset:0;pointer-events:none;overflow:hidden;
+}
+.mvp-star-particle{
+  position:absolute;font-size:1.2rem;
+  animation:starFloat var(--dur,3s) ease-in-out infinite;
+  animation-delay:var(--del,0s);
+}
+@keyframes starFloat{
+  0%,100%{transform:translateY(0) rotate(0) scale(1);opacity:.6;}
+  50%{transform:translateY(-20px) rotate(180deg) scale(1.2);opacity:1;}
+}
+
+.mvp-medal{
+  font-size:5rem;line-height:1;
+  animation:medalBounce .6s cubic-bezier(.34,1.8,.64,1) .3s both;
+  display:block;filter:drop-shadow(0 0 20px #facc15);
+}
+@keyframes medalBounce{from{opacity:0;transform:scale(0) translateY(-30px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+.mvp-title{
+  font-size:.85rem;font-weight:700;color:#facc15;
+  letter-spacing:3px;text-transform:uppercase;
+  margin:12px 0 4px;animation:fadeUp .5s ease .6s both;
+}
+.mvp-name{
+  font-size:2.2rem;font-weight:900;color:#fff;
+  margin-bottom:8px;animation:fadeUp .5s ease .7s both;
+  text-shadow:0 0 20px rgba(250,204,21,.5);
+}
+.mvp-team-badge{
+  display:inline-block;padding:4px 16px;border-radius:20px;
+  font-size:.85rem;font-weight:700;margin-bottom:16px;
+  animation:fadeUp .5s ease .8s both;
+}
+.mvp-stats{
+  display:flex;gap:16px;justify-content:center;
+  animation:fadeUp .5s ease .9s both;
+}
+.mvp-stat{
+  background:rgba(255,255,255,.1);border-radius:12px;
+  padding:8px 16px;text-align:center;
+}
+.mvp-stat-val{font-size:1.5rem;font-weight:900;color:#facc15;}
+.mvp-stat-lbl{font-size:.65rem;color:#94a3b8;margin-top:2px;}
+.mvp-points{
+  font-size:1.1rem;font-weight:900;color:#facc15;
+  margin-top:12px;animation:fadeUp .5s ease 1s both;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body>
@@ -589,6 +657,23 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
   <div id="levelup-card" style="background:linear-gradient(135deg,#fef3c7,#fff);border:2px solid #fcd34d;border-radius:18px;padding:16px 32px;text-align:center;box-shadow:0 8px 32px rgba(217,119,6,.35);min-width:180px;"></div>
 </div>
 
+<!-- MVP OVERLAY -->
+<div id="mvp-overlay">
+  <div class="mvp-card">
+    <div class="mvp-stars-bg" id="mvp-stars-bg"></div>
+    <span class="mvp-medal" id="mvp-medal">🏅</span>
+    <div class="mvp-title">⭐ MVP الجولة ⭐</div>
+    <div class="mvp-name" id="mvp-display-name">—</div>
+    <div class="mvp-team-badge" id="mvp-team-badge"></div>
+    <div class="mvp-stats">
+      <div class="mvp-stat"><div class="mvp-stat-val" id="mvp-correct">0</div><div class="mvp-stat-lbl">✅ صح</div></div>
+      <div class="mvp-stat"><div class="mvp-stat-val" id="mvp-wrong">0</div><div class="mvp-stat-lbl">❌ غلط</div></div>
+      <div class="mvp-stat"><div class="mvp-stat-val" id="mvp-presses">0</div><div class="mvp-stat-lbl">⚡ ضغطات</div></div>
+    </div>
+    <div class="mvp-points" id="mvp-points-display"></div>
+  </div>
+</div>
+
 <!-- TUTORIAL -->
 <div id="tutorial-overlay">
   <div class="tut-card" id="tut-card"></div>
@@ -666,14 +751,19 @@ socket.on('judgeResult',({correct,playerName})=>{
   else { AudioEngine.playWrong(); showJudgmentFlash('❌','غلـط! ❌',playerName,'var(--red)','rgba(254,242,242,.96)'); }
 });
 
-socket.on('roundWin',winner=>{ AudioEngine.playWin(); showWinOverlay(winner); });
+socket.on('showMVP', (mvpData)=>{ showMVPOverlay(mvpData); });
+socket.on('roundWin', data=>{
+  const winner=typeof data==='string'?data:data?.winner;
+  AudioEngine.playWin(); showWinOverlay(winner);
+});
 socket.on('hintApproved',()=>{ AudioEngine.playHint(); });
 socket.on('questionExpired',()=>{ AudioEngine.playExpire(); showJudgmentFlash('⏰','انتهى الوقت!','','var(--red)','rgba(254,242,242,.96)'); });
 socket.on('questionCancelled',({answer})=>{
   showJudgmentFlash('🚫','إلغاء السؤال'+(answer?'\nالجواب: '+answer:''),'','var(--red)','rgba(254,242,242,.96)');
 });
 socket.on('xpGain',d=>{ setTimeout(()=>showXpPopup(d),900); });
-socket.on('newRound',()=>{ closeWinOverlay(); hintVoted=false; cancelVoted=false; });
+socket.on('showMVP', (mvpData)=>{ showMVPOverlay(mvpData); });
+socket.on('newRound',()=>{ closeWinOverlay(); hintVoted=false; cancelVoted=false; closeMVPOverlay(); });
 socket.on('showMVP',()=>{ revealMVP(); });
 socket.on('levelUp',d=>{ showLevelUpPopup({type:'level',level:d.level}); });
 socket.on('prestigeUp',d=>{ showLevelUpPopup({type:'prestige',prestige:d.prestige,badge:d.badge}); });
@@ -842,7 +932,7 @@ function renderMyBigButton(state){
       tick(); answerCdTimer=setInterval(tick,250);
     }
   } else if(effectiveState==='hint'){
-    inner.textContent='💡'; label.textContent='تلميح — الزر مفتوح!'; cd.textContent=''; nameEl.textContent='';
+    inner.textContent='💡'; label.textContent='تلميح — انتظر الهوست'; cd.textContent=''; nameEl.textContent='';
   } else if(effectiveState==='correct'){
     inner.textContent='✅'; label.textContent='إجابة صحيحة! 🎉'; cd.textContent=''; const pp=state.players[state.buttonPressedBy]; nameEl.textContent=pp?.name||'';
   } else if(effectiveState==='wrong'){
@@ -999,6 +1089,62 @@ function renderLeaderboard(state){
     </div>`).join('');
 }
 
+// ── MVP OVERLAY ──
+function showMVPOverlay(mvp){
+  if(!mvp) return;
+  const ov=document.getElementById('mvp-overlay');
+  if(!ov) return;
+
+  // البيانات
+  document.getElementById('mvp-display-name').textContent=mvp.name||'—';
+  document.getElementById('mvp-correct').textContent=mvp.correctCount||0;
+  document.getElementById('mvp-wrong').textContent=mvp.wrongCount||0;
+  document.getElementById('mvp-presses').textContent=mvp.buttonPresses||0;
+  document.getElementById('mvp-points-display').textContent='🏆 '+Math.round(mvp.points||0)+' نقطة MVP';
+
+  // شارة الفريق
+  const badge=document.getElementById('mvp-team-badge');
+  if(mvp.team==='green'){
+    badge.textContent='🟢 '+(gameState?.teamNames?.green||'الأخضر');
+    badge.style.cssText='display:inline-block;padding:4px 16px;border-radius:20px;font-size:.85rem;font-weight:700;margin-bottom:16px;background:var(--green-light);color:var(--green-dark);';
+  } else {
+    badge.textContent='🟠 '+(gameState?.teamNames?.orange||'البرتقالي');
+    badge.style.cssText='display:inline-block;padding:4px 16px;border-radius:20px;font-size:.85rem;font-weight:700;margin-bottom:16px;background:var(--orange-light);color:var(--orange-dark);';
+  }
+
+  // الميدالية حسب النقاط
+  const pts=mvp.points||0;
+  const medal=pts>=15?'🥇':pts>=8?'🥈':pts>=3?'🥉':'🏅';
+  document.getElementById('mvp-medal').textContent=medal;
+
+  // نجوم متطايرة في الخلفية
+  const starsEl=document.getElementById('mvp-stars-bg');
+  starsEl.innerHTML='';
+  const starEmojis=['⭐','🌟','✨','💫','🔥','⚡'];
+  for(let i=0;i<20;i++){
+    const s=document.createElement('div');
+    s.className='mvp-star-particle';
+    s.textContent=starEmojis[Math.floor(Math.random()*starEmojis.length)];
+    s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${2+Math.random()*3}s;--del:${Math.random()*2}s;font-size:${0.8+Math.random()*1.2}rem;`;
+    starsEl.appendChild(s);
+  }
+
+  // اهتزاز الموبايل
+  if(navigator.vibrate) navigator.vibrate([100,50,100,50,200]);
+
+  // موسيقى
+  AudioEngine.playWin();
+
+  ov.classList.add('active');
+  // يغلق تلقائياً بعد 8 ثواني
+  setTimeout(closeMVPOverlay, 8000);
+}
+
+function closeMVPOverlay(){
+  const ov=document.getElementById('mvp-overlay');
+  if(ov) ov.classList.remove('active');
+}
+
 // ── WIN ──
 function showWinOverlay(winner){
   const ov=document.getElementById('win-overlay'), el=document.getElementById('win-name');
@@ -1012,8 +1158,7 @@ function showWinOverlay(winner){
     if(top){ document.getElementById('mvp-name').textContent=top.name+' ('+top.net+'+)'; const mt=document.getElementById('mvp-team'); if(mt) mt.textContent=top.team==='green'?'🟢':'🟠'; mvpWrap.dataset.ready='1'; }
   }
 }
-function revealMVP(){ const w=document.getElementById('mvp-wrap'); if(w?.dataset.ready==='1'){w.classList.add('mvp-reveal');AudioEngine.playHint();} }
-function closeWinOverlay(){ const ov=document.getElementById('win-overlay'); if(ov) ov.classList.remove('active'); const w=document.getElementById('mvp-wrap'); if(w){w.classList.remove('mvp-reveal');w.dataset.ready='';} }
+function closeWinOverlay(){ const ov=document.getElementById('win-overlay'); if(ov) ov.classList.remove('active'); }
 
 function showJudgmentFlash(icon,text,sub,color,bg){
   const el=document.getElementById('judgment-flash');

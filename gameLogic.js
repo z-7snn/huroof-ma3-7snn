@@ -189,7 +189,8 @@ function registerSocketEvents(io, db, playersDB, saveDB, getPlayerBadge, generat
       gameState.players[socket.id]={
         name,team,score:0,correctCount:0,wrongCount:0,muted:false,deafened:false,surveyDone:false,
         dbUsername:dbUsername||null, title:dbP?.title||'', level:dbP?.level||1,
-        prestige:dbP?.prestige||0, badge:getPlayerBadge(dbP?.prestige||0)
+        prestige:dbP?.prestige||0, badge:getPlayerBadge(dbP?.prestige||0),
+        mvpPoints:0, buttonPresses:0,
       };
       broadcastState(); socket.emit('joinOk');
     });
@@ -207,7 +208,10 @@ function registerSocketEvents(io, db, playersDB, saveDB, getPlayerBadge, generat
       io.emit('teamsAssigned',Object.fromEntries(Object.entries(gameState.players).map(([id,p])=>[id,{name:p.name,team:p.team}])));
     });
 
-    socket.on('showMVP', () => { if(socket.id!==gameState.host)return; io.emit('showMVP'); });
+    socket.on('showMVP', (mvpData) => {
+      if(socket.id!==gameState.host)return;
+      io.emit('showMVP', mvpData||null);
+    });
 
     socket.on('newGrid', () => {
       if(socket.id!==gameState.host)return;
@@ -292,6 +296,9 @@ function registerSocketEvents(io, db, playersDB, saveDB, getPlayerBadge, generat
       const player=gameState.players[socket.id], team=player.team, now=Date.now();
       if(team==='green'&&gameState.greenTimeoutUntil>now)return;
       if(team==='orange'&&gameState.orangeTimeoutUntil>now)return;
+      // كل ضغطة تنقص نقطة MVP
+      player.buttonPresses=(player.buttonPresses||0)+1;
+      player.mvpPoints=(player.mvpPoints||0)-1;
       gameState.buttonPressedBy=socket.id; gameState.btnState='pressed';
       gameState.answerTimerEnd=now+BUTTON_ANSWER_TIME;
       Object.entries(gameState.players).forEach(([id,p])=>{
@@ -317,6 +324,18 @@ function registerSocketEvents(io, db, playersDB, saveDB, getPlayerBadge, generat
       const player=gameState.players[pid], mult=gameState.xpMultiplier||1;
       if(gameState.answerTimerHandle){clearTimeout(gameState.answerTimerHandle);gameState.answerTimerHandle=null;}
       if(gameState.timeoutTimerHandle){clearTimeout(gameState.timeoutTimerHandle);gameState.timeoutTimerHandle=null;}
+
+      // احسب نقاط MVP بناءً على الوقت
+      const elapsed = gameState.questionStartTime ? (Date.now()-gameState.questionStartTime)/1000 : 0;
+      const minute = Math.min(4, Math.floor(elapsed/60)); // 0-4
+      const correctPts  = [5,4,3,2,1][minute];
+      const wrongPts    = [-3,-2.5,-2,-1.5,-1][minute];
+      if(correct){
+        player.mvpPoints=(player.mvpPoints||0)+correctPts;
+      } else {
+        player.mvpPoints=(player.mvpPoints||0)+wrongPts;
+      }
+
       io.emit('judgeResult',{correct,playerName:player.name,team:player.team});
       if(correct){
         player.score++; player.correctCount++;
@@ -352,7 +371,10 @@ function registerSocketEvents(io, db, playersDB, saveDB, getPlayerBadge, generat
           if(winner){
             Object.values(gameState.players).forEach(p=>{if(p.dbUsername) db.prepare('UPDATE players SET total_matches=total_matches+1 WHERE username=? COLLATE NOCASE').run(p.dbUsername);});
             gameState.wins[winner]++; gameState.phase='roundEnd';
-            resetQuestionState(); broadcastState(); io.emit('roundWin',winner);
+            // احسب MVP
+            const mvpPlayer=Object.values(gameState.players).sort((a,b)=>(b.mvpPoints||0)-(a.mvpPoints||0))[0];
+            const mvpData=mvpPlayer?{name:mvpPlayer.name,team:mvpPlayer.team,points:Math.round(mvpPlayer.mvpPoints||0),correctCount:mvpPlayer.correctCount,wrongCount:mvpPlayer.wrongCount,buttonPresses:mvpPlayer.buttonPresses||0}:null;
+            resetQuestionState(); broadcastState(); io.emit('roundWin',{winner,mvp:mvpData});
           } else { resetQuestionState(); broadcastState(); }
         },3000);
       } else {

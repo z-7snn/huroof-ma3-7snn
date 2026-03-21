@@ -160,8 +160,10 @@ function buildHexGrid(grid, container, hexSize, onCellClick, highlightSelected, 
       g.appendChild(path);
       g.appendChild(text);
 
-      if (onCellClick && !cell.owner) {
+      // الكليك يشتغل على كل الخلايا (بيضاء وملونة)
+      if (onCellClick) {
         g.addEventListener('click', () => onCellClick(r, c));
+        g.style.cursor = 'pointer';
       }
 
       svg.appendChild(g);

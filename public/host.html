@@ -488,7 +488,10 @@ body{background:var(--bg);color:var(--txt);font-family:'Tajawal',sans-serif;min-
   <div class="win-trophy">🏆</div>
   <div style="font-size:2.2rem;font-weight:900" id="win-team-name"></div>
   <div style="color:var(--mut);font-weight:700">فاز بالجولة!</div>
-  <button class="btn btn-sm bp" onclick="se('newRound');document.getElementById('win-ov').classList.remove('on')">🎯 جولة جديدة</button>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+    <button class="btn btn-sm bp" onclick="se('newRound');document.getElementById('win-ov').classList.remove('on')">🎯 جولة جديدة</button>
+    <button class="btn btn-sm by" id="host-mvp-btn" style="display:none">⭐ إعلان MVP</button>
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -528,12 +531,20 @@ socket.on('newRound', () => {
 socket.on('showMVP', () => {
   AudioEngine.playHint();
 });
-socket.on('roundWin', winner => {
+socket.on('roundWin', data => {
+  // دعم القديم والجديد
+  const winner = typeof data === 'string' ? data : data.winner;
+  const mvpData = typeof data === 'object' ? data.mvp : null;
   AudioEngine.playWin();
   document.getElementById('win-ov').classList.add('on');
   const el = document.getElementById('win-team-name');
   el.textContent = GS?.teamNames[winner] || winner;
   el.style.color = winner==='green' ? 'var(--green)' : 'var(--orange)';
+  // احفظ بيانات MVP للهوست
+  window._pendingMVP = mvpData;
+  // أظهر زر MVP
+  const mvpBtn=document.getElementById('host-mvp-btn');
+  if(mvpBtn){ mvpBtn.style.display='inline-flex'; mvpBtn.onclick=()=>triggerMVP(mvpData); }
 });
 
 socket.on('hintApproved', () => AudioEngine.playHint());
@@ -805,6 +816,15 @@ function applyQFilter(){
   var cat  = document.getElementById('fi-cat').value||'عشوائي';
   var diff = document.getElementById('fi-diff').value||'عشوائي';
   socket.emit('setAIPreferences',{category:cat,difficulty:diff});
+}
+
+function triggerMVP(mvpData){
+  if(!mvpData) return;
+  // أرسل للاعبين بيانات MVP الكاملة
+  socket.emit('showMVP', mvpData);
+  // أخفِ الزر
+  const mvpBtn=document.getElementById('host-mvp-btn');
+  if(mvpBtn) mvpBtn.style.display='none';
 }
 
 // RANDOM ASSIGN & MVP

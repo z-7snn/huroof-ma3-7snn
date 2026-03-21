@@ -62,6 +62,30 @@ body.ar .tbtn{font-family:'Tajawal',sans-serif;}
 #s-escape.glitch .game-logo{animation:textGlitch .1s steps(1) infinite;}
 @keyframes textGlitch{0%,100%{transform:none;}25%{transform:translate(-5px,3px) skewX(6deg);}50%{transform:translate(5px,-3px) skewX(-4deg);}75%{transform:translate(-3px,5px) skewX(3deg);}}
 .escape-hint{position:absolute;bottom:48px;color:var(--muted2);font-size:.82rem;}
+
+/* أزرار مزيفة */
+@keyframes fakeBtnOut{to{opacity:0;transform:translate(-50%,-50%) scale(0);}}
+
+/* طلاسم */
+@keyframes spellFade{0%{opacity:0;transform:rotate(var(--r,0deg)) scale(.5);}20%{opacity:1;}80%{opacity:1;}100%{opacity:0;transform:rotate(var(--r,0deg)) scale(1.2) translateY(-20px);}}
+
+/* تعليق */
+#s-escape.crashed{
+  animation:crashedScreen .15s steps(2) infinite!important;
+}
+@keyframes crashedScreen{
+  0%{transform:translate(0,0);}
+  25%{transform:translate(-3px,2px);}
+  50%{transform:translate(3px,-2px);}
+  75%{transform:translate(-2px,3px);}
+  100%{transform:translate(2px,-3px);}
+}
+@keyframes btnCrash{
+  0%{transform:translate(-50%,-50%) scale(1);}
+  33%{transform:translate(-50%,-50%) scale(.95) rotate(-2deg);}
+  66%{transform:translate(-50%,-50%) scale(1.02) rotate(2deg);}
+  100%{transform:translate(-50%,-50%) scale(.98);}
+}
 #s-tty{background:var(--bg);}
 .laptop-wrap{animation:laptopOpen .8s cubic-bezier(.34,1.56,.64,1) forwards;}
 @keyframes laptopOpen{from{transform:rotateX(-40deg) translateY(50px);opacity:0}to{transform:rotateX(0) translateY(0);opacity:1}}
@@ -381,336 +405,324 @@ function goToEscape(){
 }
 
 const btn=document.getElementById('escape-btn');
-let btnCaught=false, escapeEnabled=false, moveCount=0;
-let glitchActive=false, glitchTimer=null;
-let teleportPhase=false;
-let nextX=0, nextY=0;
-let beepInterval=null, arrowInterval=null;
+let btnCaught=false, escapeEnabled=false;
 let audioCtx=null;
-
-setTimeout(()=>{ escapeEnabled=true; },900);
-
-// ── اقتراب من الزر ──
-// تتبع موقع الماوس باستمرار
+let escapePhase=0; // 0=fake buttons, 1=chaos, 2=crash
+let chaosInterval=null, spellInterval=null, crashTimer=null;
+let chaosMoveInterval=null, slowdownInterval=null;
 let mouseX=window.innerWidth/2, mouseY=window.innerHeight/2;
+let fakeBtns=[], correctFakeId=null, fakeChangeInterval=null;
+let chaosStartTime=0, spellDensity=0;
+let correctFakeIdx=0;
+
 document.addEventListener('mousemove',e=>{ mouseX=e.clientX; mouseY=e.clientY; });
 
-// مراقبة المسافة باستمرار — يهرب قبل ما تقرب!
-let watcherInterval=null;
-function startButtonWatcher(){
-  if(watcherInterval) return;
-  watcherInterval=setInterval(()=>{
-    if(btnCaught||teleportPhase||!escapeEnabled) return;
-    const bx=parseFloat(btn.style.left)||window.innerWidth/2;
-    const by=parseFloat(btn.style.top)||window.innerHeight/2;
-    const dist=Math.hypot(mouseX-bx, mouseY-by);
-    if(dist < 180 + moveCount*25 && moveCount < 12){
-      moveCount++;
-      moveButtonAway();
-      if(moveCount>=3 && !glitchActive) startGlitch();
-    } else if(moveCount>=12 && !teleportPhase){
-      startTeleportPhase();
+setTimeout(()=>{ escapeEnabled=true; startPhase1(); }, 900);
+
+// ══════════════════════════════════════
+// المرحلة 1 — أزرار مزيفة (10 ثواني)
+// ══════════════════════════════════════
+function startPhase1(){
+  const screen=document.getElementById('s-escape');
+  const vw=window.innerWidth, vh=window.innerHeight, m=70;
+  const COUNT=Math.floor(60+Math.random()*40); // 60-100 زر
+
+  // أخفِ الزر الحقيقي
+  btn.style.opacity='0'; btn.style.pointerEvents='none';
+
+  // اصنع الأزرار المزيفة
+  for(let i=0;i<COUNT;i++){
+    const fb=document.createElement('button');
+    fb.className='fake-btn';
+    fb.dataset.idx=i;
+    fb.textContent='Enter';
+    fb.style.cssText=`position:absolute;width:80px;height:80px;border-radius:50%;border:none;
+      background:linear-gradient(145deg,var(--green),#22c55e);color:#fff;font-size:.85rem;
+      font-weight:900;cursor:pointer;box-shadow:0 5px 0 var(--green-dark),0 8px 18px rgba(22,163,74,.3);
+      transform:translate(-50%,-50%);left:${m+Math.random()*(vw-m*2)}px;top:${m+Math.random()*(vh-m*2)}px;
+      transition:none;user-select:none;`;
+    fb.addEventListener('click',()=> onFakeBtnClick(i));
+    fb.addEventListener('touchstart',(e)=>{ e.preventDefault(); onFakeBtnClick(i); },{passive:false});
+    screen.appendChild(fb);
+    fakeBtns.push(fb);
+  }
+
+  // اختار الصح عشوائي
+  correctFakeIdx=Math.floor(Math.random()*COUNT);
+  highlightCorrect();
+
+  // كل ثانية يتغير مكان الصح
+  fakeChangeInterval=setInterval(()=>{
+    correctFakeIdx=Math.floor(Math.random()*fakeBtns.length);
+    highlightCorrect();
+    // كل الأزرار تتحرك شوي
+    fakeBtns.forEach(fb=>{
+      fb.style.left=(m+Math.random()*(vw-m*2))+'px';
+      fb.style.top=(m+Math.random()*(vh-m*2))+'px';
+    });
+  }, 1000);
+
+  // بعد 10 ثواني تختفي كلها ويطلع الزر الحقيقي
+  setTimeout(()=>{
+    clearInterval(fakeChangeInterval);
+    removeFakeBtns();
+    startPhase2fromBelow();
+  }, 10000);
+}
+
+function highlightCorrect(){
+  fakeBtns.forEach((fb,i)=>{
+    if(i===correctFakeIdx){
+      fb.style.background='linear-gradient(145deg,var(--green),#22c55e)';
+      fb.style.boxShadow='0 5px 0 var(--green-dark),0 8px 18px rgba(22,163,74,.3)';
+    } else {
+      // الغلط لونه مختلف قليلاً — مو واضح الفرق 😈
+      const r=Math.random();
+      if(r<0.3) fb.style.background='linear-gradient(145deg,#1d9c3e,#16a34a)';
+      else if(r<0.6) fb.style.background='linear-gradient(145deg,#15803d,#22c55e)';
+      else fb.style.background='linear-gradient(145deg,#166534,#16a34a)';
     }
-  }, 30); // كل 30ms يفحص المسافة
-}
-
-btn.addEventListener('mouseenter', ()=>{
-  if(!escapeEnabled||btnCaught) return;
-  if(teleportPhase){ doTeleport(); return; }
-  if(moveCount<12){ moveCount++; moveButtonAway(); if(moveCount>=3&&!glitchActive) startGlitch(); }
-  else if(!teleportPhase) startTeleportPhase();
-});
-btn.addEventListener('touchstart',(e)=>{ e.preventDefault(); if(!escapeEnabled||btnCaught)return; if(teleportPhase){doTeleport();return;} if(moveCount<12){moveCount++;moveButtonAway();if(moveCount>=3&&!glitchActive)startGlitch();}else if(!teleportPhase)startTeleportPhase(); },{passive:false});
-
-function onBtnApproach(){}
-
-function moveButtonAway(){
-  const vw=window.innerWidth, vh=window.innerHeight, m=60;
-
-  // احسب الاتجاه بعيداً عن الماوس
-  const bx=parseFloat(btn.style.left)||vw/2;
-  const by=parseFloat(btn.style.top)||vh/2;
-  const dx=bx-mouseX, dy=by-mouseY;
-  const angle=Math.atan2(dy,dx);
-
-  // يقفز بعيد جداً في نفس اتجاه الهروب + عشوائية
-  const jumpDist = 250 + Math.random()*200;
-  let nx = bx + Math.cos(angle)*jumpDist + (Math.random()-0.5)*150;
-  let ny = by + Math.sin(angle)*jumpDist + (Math.random()-0.5)*150;
-
-  // تأكد ما يخرج من الشاشة
-  nx = Math.max(m, Math.min(vw-m, nx));
-  ny = Math.max(m, Math.min(vh-m, ny));
-
-  // تحرك فوري بدون animation — مستحيل تمسكه
-  btn.style.transition='none';
-  btn.style.left=nx+'px';
-  btn.style.top=ny+'px';
-
-  // دايماً يتحرك مرة ثانية فجأة بعد أول قفزة 😈
-  setTimeout(()=>{
-    if(btnCaught||teleportPhase) return;
-    const vw2=window.innerWidth, vh2=window.innerHeight;
-    // القفزة الثانية تكون عكس موقع الماوس الحالي
-    const bx2=parseFloat(btn.style.left)||vw2/2;
-    const by2=parseFloat(btn.style.top)||vh2/2;
-    const dx2=bx2-mouseX, dy2=by2-mouseY;
-    const angle2=Math.atan2(dy2,dx2);
-    const dist2=150+Math.random()*150;
-    let nx2=bx2+Math.cos(angle2)*dist2;
-    let ny2=by2+Math.sin(angle2)*dist2;
-    nx2=Math.max(m,Math.min(vw2-m,nx2));
-    ny2=Math.max(m,Math.min(vh2-m,ny2));
-    btn.style.left=nx2+'px'; btn.style.top=ny2+'px';
-    // القفزة الثالثة لو في مراحل متأخرة 😈
-    if(moveCount>=8){
-      setTimeout(()=>{
-        if(btnCaught||teleportPhase) return;
-        const nx3=m+Math.random()*(vw2-120-m*2);
-        const ny3=m+Math.random()*(vh2-120-m*2);
-        btn.style.left=nx3+'px'; btn.style.top=ny3+'px';
-      },60+Math.random()*80);
-    }
-  }, 60+Math.random()*80);
-}
-
-// ابدأ المراقبة لما تفتح شاشة الهروب
-setTimeout(startButtonWatcher, 1000);
-
-// ── فوضى الشاشة ──
-function startGlitch(){
-  glitchActive=true;
-  const screen=document.getElementById('s-escape');
-  screen.classList.add('glitch');
-
-  // إلغاء الفوضى بعد 15 ثانية
-  glitchTimer=setTimeout(()=>{
-    screen.classList.remove('glitch');
-    glitchActive=false;
-    if(!teleportPhase && moveCount>=3) startTeleportPhase();
-  }, 15000);
-}
-
-// ── مرحلة التيليبورت ──
-function startTeleportPhase(){
-  teleportPhase=true;
-  const screen=document.getElementById('s-escape');
-  screen.classList.remove('glitch');
-  glitchActive=false;
-  if(glitchTimer){ clearTimeout(glitchTimer); glitchTimer=null; }
-
-  // أول تيليبورت
-  doTeleport();
-}
-
-function doTeleport(){
-  const vw=window.innerWidth, vh=window.innerHeight, m=100;
-
-  // إخفاء الزر
-  btn.style.opacity='0';
-  btn.style.transform='translate(-50%,-50%) scale(0)';
-  btn.style.transition='opacity .3s, transform .3s';
-
-  // احسب المكان الجديد
-  nextX = m + Math.random()*(vw-120-m*2);
-  nextY = m + Math.random()*(vh-120-m*2);
-
-  // أظهر البوابة في مكان الزر القديم
-  const portal=document.getElementById('teleport-portal');
-  portal.style.left=btn.style.left;
-  portal.style.top=btn.style.top;
-  portal.classList.add('active');
-
-  // طلع الأسهم والبيب
-  showHelperArrows(nextX, nextY);
-  startBeepSystem(nextX, nextY);
-
-  // بعد ثانية — أظهر منطقة الضغط في المكان الجديد
-  setTimeout(()=>{
-    const zone=document.getElementById('pre-click-zone');
-    zone.style.left=nextX+'px';
-    zone.style.top=nextY+'px';
-    zone.classList.add('active');
-  }, 800);
-
-  // بعد ثانيتين — انقل الزر للمكان الجديد وأظهره
-  setTimeout(()=>{
-    // إخفاء البوابة
-    portal.classList.remove('active');
-
-    // أظهر بوابة في المكان الجديد
-    portal.style.left=nextX+'px';
-    portal.style.top=nextY+'px';
-    portal.classList.add('active');
-
-    setTimeout(()=>{
-      // الزر يطلع من البوابة
-      btn.style.left=nextX+'px';
-      btn.style.top=nextY+'px';
-      btn.style.opacity='1';
-      btn.style.transform='translate(-50%,-50%) scale(1.2)';
-      setTimeout(()=>{
-        btn.style.transform='translate(-50%,-50%) scale(1)';
-        portal.classList.remove('active');
-        clearHelpers();
-      }, 400);
-    }, 300);
-  }, 1500);
-}
-
-// ── منطقة الضغط المسبق ──
-function preClickZoneHit(){
-  if(btnCaught) return;
-  // ضغط قبل ما يطلع الزر = فوز!
-  btnCaught=true;
-  clearHelpers();
-  const portal=document.getElementById('teleport-portal');
-  portal.classList.remove('active');
-  const zone=document.getElementById('pre-click-zone');
-  zone.classList.remove('active');
-
-  // أظهر الزر في المكان المضغوط
-  btn.style.left=nextX+'px';
-  btn.style.top=nextY+'px';
-  btn.style.opacity='1';
-  btn.style.transform='translate(-50%,-50%) scale(1)';
-  btn.textContent=t().escapeCaught||'Got it!';
-  btn.style.background='linear-gradient(145deg,#f97316,#ea580c)';
-
-  setTimeout(goToTTY, 500);
-}
-
-// ── الأسهم ──
-function showHelperArrows(targetX, targetY){
-  clearArrows();
-  const screen=document.getElementById('s-escape');
-  const vw=window.innerWidth, vh=window.innerHeight;
-
-  // 4 أسهم في الزوايا تشير للاتجاه الصح (أحياناً تكذب 😈)
-  const directions=[
-    {x:vw*0.1, y:vh*0.1},
-    {x:vw*0.9, y:vh*0.1},
-    {x:vw*0.1, y:vh*0.9},
-    {x:vw*0.9, y:vh*0.9},
-  ];
-
-  directions.forEach((pos, i)=>{
-    const arrow=document.createElement('div');
-    arrow.className='helper-arrow';
-    arrow.style.left=pos.x+'px';
-    arrow.style.top=pos.y+'px';
-
-    // احسب الاتجاه الحقيقي
-    const dx=targetX-pos.x, dy=targetY-pos.y;
-    const angle=Math.atan2(dy,dx)*180/Math.PI;
-
-    // سهمين يكذبان (عشوائي)
-    const isLiar = i%2===1 && Math.random()>0.4;
-    const finalAngle = isLiar ? angle + 90 + Math.random()*90 : angle;
-
-    arrow.style.transform=`rotate(${finalAngle}deg)`;
-    arrow.style.animationDelay=(i*0.1)+'s';
-    arrow.textContent='➤';
-    screen.appendChild(arrow);
   });
 }
 
-function clearArrows(){
-  document.querySelectorAll('.helper-arrow').forEach(a=>a.remove());
+function onFakeBtnClick(idx){
+  if(btnCaught) return;
+  if(idx===correctFakeIdx){
+    // ضغط الصح! انتقل للمرحلة 2
+    clearInterval(fakeChangeInterval);
+    removeFakeBtns();
+    startPhase2fromBelow();
+  } else {
+    // غلط — اهتزاز بسيط وتأثير أحمر
+    const fb=fakeBtns[idx];
+    if(fb){ fb.style.background='linear-gradient(145deg,#dc2626,#ef4444)'; fb.style.transform='translate(-50%,-50%) scale(.85)'; setTimeout(()=>{ if(fb){ fb.style.background=''; fb.style.transform='translate(-50%,-50%) scale(1)'; highlightCorrect(); } },300); }
+    if(navigator.vibrate) navigator.vibrate(80);
+  }
 }
 
-// ── نظام الصوت / البيب ──
-function getAudioCtx(){
-  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-  return audioCtx;
+function removeFakeBtns(){
+  fakeBtns.forEach(fb=>{ fb.style.animation='fakeBtnOut .3s ease forwards'; setTimeout(()=>fb.remove(),300); });
+  fakeBtns=[];
 }
 
-function playBeep(freq, vol){
-  try{
-    const ctx=getAudioCtx();
-    if(ctx.state==='suspended') ctx.resume();
-    const osc=ctx.createOscillator();
-    const gain=ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type='sine';
-    osc.frequency.value=freq;
-    gain.gain.setValueAtTime(vol, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.15);
-    osc.start(); osc.stop(ctx.currentTime+0.15);
-  }catch(e){}
+// ══════════════════════════════════════
+// المرحلة 2 — الزر يطلع من تحت + فوضى
+// ══════════════════════════════════════
+function startPhase2fromBelow(){
+  const vw=window.innerWidth, vh=window.innerHeight;
+  // الزر يطلع من أسفل الشاشة
+  btn.style.left=(vw/2)+'px';
+  btn.style.top=(vh+80)+'px';
+  btn.style.opacity='1';
+  btn.style.transform='translate(-50%,-50%) scale(1)';
+  btn.style.transition='top .8s cubic-bezier(.34,1.3,.64,1)';
+  btn.style.pointerEvents='auto';
+  btn.onclick=catchBtn;
+  btn.ontouchstart=null;
+  btn.addEventListener('touchstart',(e)=>{ e.preventDefault(); catchBtn(); },{passive:false,once:true});
+
+  setTimeout(()=>{
+    btn.style.top=(vh/2)+'px';
+    setTimeout(()=>{
+      btn.style.transition='none';
+      startChaos();
+    }, 900);
+  }, 100);
+
+  chaosStartTime=Date.now();
 }
 
-function startBeepSystem(targetX, targetY){
-  stopBeepSystem();
-  const beepEl=document.getElementById('beep-indicator');
-  const beepText=document.getElementById('beep-text');
-  const bars=document.querySelectorAll('.beep-bar');
-  beepEl.classList.add('active');
+// ══════════════════════════════════════
+// الفوضى
+// ══════════════════════════════════════
+const SPELLS=[
+  'ᚠᚢᚦᚨᚱᚲ','𒀭𒂗𒍪','ꁩꂁꀘ','ꄤꁱꀎ',
+  'اعوذ بالله','يا قهار','السحر يرتد',
+  'بسم الله','لا إله إلا الله',
+  'ⰋⰎⰎⰏⰋⰐ','ᏒᎧᏝᏝ','ꋊꀘꁱ',
+  '𖤐𖤐𖤐','⛧⛥⸸','҉҉҉',
+  'الزر لك','لن تصيده','يهرب منك',
+  'تعبت؟','استسلم','مستحيل',
+  'ᎥᏁᏉᎥᏚᎥᏰᏞᎬ','ꀘꁱꁹꂅ',
+  'الوقت ينفد','اخرج','ارجع',
+];
 
-  beepInterval=setInterval(()=>{
-    // موقع الماوس أو مركز الشاشة
-    const mx=window._mouseX||(window.innerWidth/2);
-    const my=window._mouseY||(window.innerHeight/2);
-    const dist=Math.hypot(targetX-mx, targetY-my);
-    const maxDist=Math.hypot(window.innerWidth, window.innerHeight);
-    const closeness=1-(dist/maxDist); // 0=بعيد, 1=قريب
+function startChaos(){
+  const screen=document.getElementById('s-escape');
+  screen.classList.add('glitch');
 
-    // تردد الصوت — كلما اقتربت زاد
-    const freq=200+closeness*800;
-    const vol=0.05+closeness*0.2;
-    playBeep(freq, vol);
+  // الزر يهرب من الماوس
+  startChaosMove();
 
-    // تحديث الأشرطة المرئية
-    const h=Math.round(4+closeness*14);
-    bars.forEach((b,i)=>{
-      b.style.height=(h+Math.random()*6)+'px';
-      b.style.background=closeness>0.7?'#ef4444':closeness>0.4?'#f59e0b':'#22c55e';
-    });
+  // الطلاسم تملأ الشاشة تدريجياً
+  spellInterval=setInterval(()=>{
+    if(btnCaught) return;
+    const elapsed=(Date.now()-chaosStartTime)/1000;
+    // كلما مر وقت أكثر كلما طلعت كتابات أكثر
+    const density=Math.min(1, elapsed/60);
+    const count=Math.floor(1+density*8);
+    for(let i=0;i<count;i++) spawnSpell(density);
+    // تبطئ الصوت تدريجياً
+    if(elapsed>30) applySlowdown(elapsed);
+  }, Math.max(200, 2000-elapsed()*30));
 
-    // نص
-    if(closeness>0.75) beepText.textContent='🔥 HOT!';
-    else if(closeness>0.5) beepText.textContent='warm';
-    else if(closeness>0.25) beepText.textContent='cold';
-    else beepText.textContent='❄️ ice cold';
-
-  }, closeness=>closeness>0.7?150:closeness>0.4?300:500);
-
-  // تسجيل موقع الماوس
-  window.addEventListener('mousemove', trackMouse);
+  // بعد دقيقتين — تعليق كامل وضغط وحده
+  crashTimer=setTimeout(startCrash, 120000);
 }
 
-// تتبع موقع الماوس
-function trackMouse(e){ window._mouseX=e.clientX; window._mouseY=e.clientY; }
+function elapsed(){ return (Date.now()-chaosStartTime)/1000; }
 
-function stopBeepSystem(){
-  if(beepInterval){ clearInterval(beepInterval); beepInterval=null; }
-  const beepEl=document.getElementById('beep-indicator');
-  if(beepEl) beepEl.classList.remove('active');
-  window.removeEventListener('mousemove', trackMouse);
+function startChaosMove(){
+  if(chaosMoveInterval) clearInterval(chaosMoveInterval);
+  chaosMoveInterval=setInterval(()=>{
+    if(btnCaught) return;
+    const vw=window.innerWidth, vh=window.innerHeight, m=80;
+    const bx=parseFloat(btn.style.left)||vw/2;
+    const by=parseFloat(btn.style.top)||vh/2;
+    const dist=Math.hypot(mouseX-bx, mouseY-by);
+    const e=elapsed();
+    // المسافة الخطرة تزيد مع الوقت
+    const danger=150+e*3;
+
+    if(dist<danger){
+      const dx=bx-mouseX, dy=by-mouseY;
+      const angle=Math.atan2(dy,dx);
+      const speed=200+e*8;
+      let nx=bx+Math.cos(angle)*speed+(Math.random()-.5)*100;
+      let ny=by+Math.sin(angle)*speed+(Math.random()-.5)*100;
+      nx=Math.max(m,Math.min(vw-m,nx));
+      ny=Math.max(m,Math.min(vh-m,ny));
+      btn.style.left=nx+'px'; btn.style.top=ny+'px';
+      // بعد 30 ثانية يصير أسرع ويقفز ثلاث مرات
+      if(e>30){
+        setTimeout(()=>{
+          if(btnCaught) return;
+          btn.style.left=(m+Math.random()*(vw-m*2))+'px';
+          btn.style.top=(m+Math.random()*(vh-m*2))+'px';
+        }, 40);
+        if(e>60){
+          setTimeout(()=>{
+            if(btnCaught) return;
+            btn.style.left=(m+Math.random()*(vw-m*2))+'px';
+            btn.style.top=(m+Math.random()*(vh-m*2))+'px';
+          }, 80);
+        }
+      }
+    }
+  }, 30);
 }
 
-function clearHelpers(){
-  clearArrows();
-  stopBeepSystem();
-  const zone=document.getElementById('pre-click-zone');
-  if(zone) zone.classList.remove('active');
+function spawnSpell(density){
+  const vw=window.innerWidth, vh=window.innerHeight;
+  const el=document.createElement('div');
+  el.className='spell-text';
+  el.textContent=SPELLS[Math.floor(Math.random()*SPELLS.length)];
+  const size=0.6+density*1.4;
+  const opacity=0.15+density*0.65;
+  const dur=3+Math.random()*4;
+  el.style.cssText=`
+    position:absolute;
+    left:${Math.random()*vw}px;
+    top:${Math.random()*vh}px;
+    font-size:${size}rem;
+    color:${Math.random()>0.5?'#ef4444':'#7c3aed'};
+    opacity:${opacity};
+    pointer-events:none;
+    z-index:2;
+    font-weight:900;
+    text-shadow:0 0 8px currentColor;
+    animation:spellFade ${dur}s ease forwards;
+    transform:rotate(${(Math.random()-.5)*30}deg);
+  `;
+  document.getElementById('s-escape').appendChild(el);
+  setTimeout(()=>el.remove(), dur*1000);
+}
+
+// تبطيء الصوت
+function applySlowdown(e){
+  if(!audioCtx) return;
+  // تبطيء الـ AudioContext
+  const rate=Math.max(0.3, 1-(e-30)/90);
+  try{ audioCtx.playbackRate=rate; }catch(_){}
+}
+
+// ══════════════════════════════════════
+// المرحلة 3 — تعليق كامل
+// ══════════════════════════════════════
+function startCrash(){
+  if(btnCaught) return;
+  const screen=document.getElementById('s-escape');
+
+  // أوقف الفوضى العادية
+  clearInterval(chaosMoveInterval);
+  clearInterval(spellInterval);
+
+  // الشاشة تتجمد
+  screen.style.filter='saturate(0) brightness(.7)';
+  screen.style.transition='filter .5s';
+
+  // أضف تأثير التعليق
+  screen.classList.add('crashed');
+
+  // طلع رسالة "Not Responding"
+  const crashMsg=document.createElement('div');
+  crashMsg.style.cssText=`position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    background:#1a1a1a;color:#fff;padding:8px 20px;border-radius:6px;font-size:.8rem;
+    font-family:monospace;z-index:9999;border:1px solid #444;`;
+  crashMsg.textContent='⚠️ escape-game.exe (Not Responding)';
+  document.body.appendChild(crashMsg);
+
+  // الزر "يخرب" ويضغط وحده بعد 3 ثواني
+  setTimeout(()=>{
+    btn.style.background='linear-gradient(145deg,#94a3b8,#64748b)';
+    btn.style.boxShadow='none';
+    btn.textContent='...';
+    btn.style.animation='btnCrash .3s steps(3) infinite';
+
+    // بعد ثانية يضغط وحده
+    setTimeout(()=>{
+      if(btnCaught) return;
+      btnCaught=true;
+      crashMsg.remove();
+      screen.style.filter='';
+      screen.classList.remove('crashed','glitch');
+      btn.textContent='💀';
+      btn.style.background='linear-gradient(145deg,#dc2626,#991b1b)';
+      btn.style.animation='none';
+      // يدخل بعد ثانيتين
+      setTimeout(goToTTY, 2000);
+    }, 1500);
+  }, 3000);
 }
 
 function catchBtn(){
   if(btnCaught) return;
   btnCaught=true;
-  clearHelpers();
-  const portal=document.getElementById('teleport-portal');
-  if(portal) portal.classList.remove('active');
-  const screen=document.getElementById('s-escape');
-  screen.classList.remove('glitch');
-  if(glitchTimer){ clearTimeout(glitchTimer); glitchTimer=null; }
+  clearInterval(chaosMoveInterval);
+  clearInterval(spellInterval);
+  if(crashTimer) clearTimeout(crashTimer);
+  document.getElementById('s-escape').classList.remove('glitch','crashed');
+  document.querySelectorAll('.spell-text').forEach(e=>e.remove());
 
   btn.textContent=t().escapeCaught||'Got it!';
   btn.style.background='linear-gradient(145deg,#f97316,#ea580c)';
   btn.style.transition='all .3s';
-  setTimeout(goToTTY,500);
+  setTimeout(goToTTY, 500);
 }
+
+// ── بدون الدوال القديمة الغير مستخدمة ──
+function startButtonWatcher(){}
+function moveButtonAway(){}
+function startGlitch(){}
+function startTeleportPhase(){}
+function doTeleport(){}
+function preClickZoneHit(){}
+function showHelperArrows(){}
+function clearArrows(){}
+function startBeepSystem(){}
+function stopBeepSystem(){}
+function clearHelpers(){}
+function trackMouse(){}
 
 function goToTTY(){
   const s1=document.getElementById('s-escape');
