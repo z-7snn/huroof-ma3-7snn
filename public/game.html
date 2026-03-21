@@ -226,9 +226,10 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
 }
 
 /* حالات الزر الكبير */
+/* idle = هوست ما اختار بعد = برتقالي */
 .big-btn-wrap.idle .big-btn-inner{
-  background:radial-gradient(circle at 38% 32%,#94a3b8,#475569);
-  box-shadow:0 6px 0 #1e293b,inset 0 2px 0 rgba(255,255,255,.15);
+  background:radial-gradient(circle at 38% 32%,#fb923c,#ea580c);
+  box-shadow:0 6px 0 #7c2d12,inset 0 2px 0 rgba(255,255,255,.2);
 }
 .big-btn-wrap.open .big-btn-inner{
   background:radial-gradient(circle at 38% 32%,#ffffff,#d1d5db);
@@ -878,7 +879,6 @@ function renderAllPlayersMini(state){
 
 // ── الزر الكبير ──
 let _lastBtnState='';
-let _lastTimeoutTeam='';
 
 function renderMyBigButton(state){
   const wrap=document.getElementById('my-big-btn');
@@ -890,73 +890,81 @@ function renderMyBigButton(state){
 
   const btnState=state.btnState||'idle';
   const now=Date.now();
-  const myInTimeoutGreen=myTeam==='green'&&state.greenTimeoutUntil>now;
-  const myInTimeoutOrange=myTeam==='orange'&&state.orangeTimeoutUntil>now;
-  const myInTimeout=myInTimeoutGreen||myInTimeoutOrange;
+  const myInTimeout=(myTeam==='green'&&state.greenTimeoutUntil>now)||(myTeam==='orange'&&state.orangeTimeoutUntil>now);
+  const presserIsMe=state.buttonPressedBy===myId;
 
-  // الحالة الفعلية
-  let effectiveState=btnState;
-  const presserIsMe = state.buttonPressedBy===myId;
+  // ── حساب effectiveState ──
+  let effectiveState;
 
-  if(myInTimeout){
-    // فريقي عنده تايم أوت = مغلق
+  if(btnState==='idle'){
+    // هوست ما اختار بعد = برتقالي
+    effectiveState='idle';
+
+  } else if(myInTimeout){
+    // فريقي في تايم أوت = مقفل
     effectiveState='timeout';
+
   } else if(btnState==='timeout_green'||btnState==='timeout_orange'){
-    // الفريق المعني بالتايم أوت مغلق، الثاني مفتوح
-    const toTeam = btnState==='timeout_green'?'green':'orange';
-    effectiveState = myTeam===toTeam ? 'timeout' : 'open';
-  } else if(btnState==='pressed' && state.buttonPressedBy && !presserIsMe){
-    // شخص ضغط — الكل ينتظر غيره
-    effectiveState='waiting';
-  } else if((btnState==='wrong'||btnState==='correct') && !presserIsMe){
-    // الحكم خلص — الباقين يشوفون open
+    // فريق ثاني في تايم أوت = أنا مفتوح
+    const toTeam=btnState==='timeout_green'?'green':'orange';
+    effectiveState=myTeam===toTeam?'timeout':'open';
+
+  } else if(btnState==='pressed'&&state.buttonPressedBy){
+    // شخص ضغط
+    effectiveState=presserIsMe?'pressed':'waiting';
+
+  } else if(btnState==='hint'){
+    // تلميح = أصفر مقفل لين الهوست يفتح
+    effectiveState='hint';
+
+  } else if(btnState==='correct'){
+    effectiveState='correct';
+
+  } else if(btnState==='wrong'){
+    // بعد الغلط = ينتظر السيرفر (تايم أوت أو open)
+    effectiveState=presserIsMe?'wrong':'open';
+
+  } else {
+    // open أو أي حالة ثانية
     effectiveState='open';
   }
 
-  // تايم أوت — رمادي مغلق بس + عداد الخدوش
+  // ── تأثيرات انتقالية ──
   if(effectiveState==='timeout'&&_lastBtnState!=='timeout'){
     if(navigator.vibrate) navigator.vibrate([80,40,80]);
     teamTimeoutCount[myTeam]=(teamTimeoutCount[myTeam]||0)+1;
+    triggerExplosion(wrap,inner);
   }
-  // تجميع الزر لما يرجع
   if(_lastBtnState==='timeout'&&effectiveState!=='timeout'){
     triggerAssemble(wrap,inner);
   }
   _lastBtnState=effectiveState;
 
-  // تحديث class
+  // ── CSS class ──
   wrap.className='big-btn-wrap '+effectiveState;
-  wrap.classList.toggle('cant-press',effectiveState==='idle'||effectiveState==='timeout'||effectiveState==='waiting'||effectiveState==='correct'||effectiveState==='wrong');
+  const cantPress=effectiveState==='idle'||effectiveState==='timeout'||effectiveState==='waiting'||effectiveState==='hint'||effectiveState==='correct'||effectiveState==='wrong';
+  wrap.classList.toggle('cant-press',cantPress);
 
-  // الخدوش
+  // ── الخدوش ──
   updateDamageOverlay(myTeam);
 
-  // المحتوى
+  // ── المحتوى ──
   if(effectiveState==='idle'){
-    // إذا شخص ثاني ضغط — أظهر اسمه تحت الزر الرمادي
-    if(btnState==='pressed'&&state.buttonPressedBy&&state.buttonPressedBy!==myId){
-      const pp=state.players[state.buttonPressedBy];
-      inner.textContent='⏳';
-      label.textContent=(pp?.name||'شخص')+' يجاوب...';
-      cd.textContent=''; nameEl.textContent=''; nameEl.style.background='transparent';
-    } else {
-      inner.textContent='🔒'; label.textContent='انتظر الهوست'; cd.textContent=''; nameEl.textContent=''; nameEl.style.background='transparent';
-    }
+    inner.textContent=''; label.textContent='انتظر الهوست';
+    cd.textContent=''; nameEl.textContent=''; nameEl.style.background='transparent';
+
   } else if(effectiveState==='open'){
-    inner.textContent='اضغط';
-    // إذا الوضع هو تايم أوت للفريق الثاني — نقول "دور فريقك"
-    const oppInTimeout=(btnState==='timeout_green'&&myTeam==='orange')||(btnState==='timeout_orange'&&myTeam==='green');
-    label.textContent= oppInTimeout ? '⚡ دور فريقك!' : 'الزر مفتوح!';
+    inner.textContent='اضغط'; label.textContent='الزر مفتوح!';
     cd.textContent=''; nameEl.textContent=myName||'';
     nameEl.style.background=myTeam==='green'?'var(--green-light)':'var(--orange-light)';
     nameEl.style.color=myTeam==='green'?'var(--green-dark)':'var(--orange-dark)';
+
   } else if(effectiveState==='pressed'){
-    const pp=state.players[state.buttonPressedBy];
     inner.textContent='⚡'; label.textContent='أنت ضغطت! جاوب!';
-    nameEl.textContent=pp?.name||''; nameEl.style.background=pp?.team==='green'?'var(--green-light)':'var(--orange-light)'; nameEl.style.color=pp?.team==='green'?'var(--green-dark)':'var(--orange-dark)';
-    // عداد
-    if(state.answerTimerEnd){
-      if(answerCdTimer) clearInterval(answerCdTimer);
+    nameEl.textContent=myName||'';
+    nameEl.style.background=myTeam==='green'?'var(--green-light)':'var(--orange-light)';
+    nameEl.style.color=myTeam==='green'?'var(--green-dark)':'var(--orange-dark)';
+    if(state.answerTimerEnd&&!answerCdTimer){
       const tick=()=>{
         const s=Math.ceil((state.answerTimerEnd-Date.now())/1000);
         if(s<=0){ cd.textContent='⏰'; cd.style.color='var(--red)'; clearInterval(answerCdTimer); answerCdTimer=null; }
@@ -964,14 +972,32 @@ function renderMyBigButton(state){
       };
       tick(); answerCdTimer=setInterval(tick,250);
     }
+
+  } else if(effectiveState==='waiting'){
+    const pp=state.players[state.buttonPressedBy];
+    inner.textContent='⏳'; label.textContent=(pp?.name||'شخص')+' يجاوب...';
+    cd.textContent=''; nameEl.textContent=''; nameEl.style.background='transparent';
+
   } else if(effectiveState==='hint'){
-    inner.textContent='💡'; label.textContent='تلميح — انتظر الهوست'; cd.textContent=''; nameEl.textContent='';
+    inner.textContent='💡'; label.textContent='تلميح — انتظر الهوست';
+    cd.textContent=''; nameEl.textContent=''; nameEl.style.background='transparent';
+
   } else if(effectiveState==='correct'){
-    inner.textContent='✅'; label.textContent='إجابة صحيحة! 🎉'; cd.textContent=''; const pp=state.players[state.buttonPressedBy]; nameEl.textContent=pp?.name||'';
+    const pp=state.players[state.buttonPressedBy];
+    inner.textContent='✅'; label.textContent='إجابة صحيحة! 🎉';
+    cd.textContent=''; nameEl.textContent=pp?.name||'';
+    nameEl.style.background=pp?.team==='green'?'var(--green-light)':'var(--orange-light)';
+    nameEl.style.color=pp?.team==='green'?'var(--green-dark)':'var(--orange-dark)';
+
   } else if(effectiveState==='wrong'){
-    inner.textContent='❌'; label.textContent='إجابة خاطئة!'; cd.textContent=''; const pp=state.players[state.buttonPressedBy]; nameEl.textContent=pp?.name||'';
+    const pp=state.players[state.buttonPressedBy];
+    inner.textContent='❌'; label.textContent='إجابة خاطئة!';
+    cd.textContent=''; nameEl.textContent=pp?.name||'';
+    nameEl.style.background='var(--red-light)'; nameEl.style.color='var(--red)';
+
   } else if(effectiveState==='timeout'){
-    inner.textContent='🔒'; label.textContent='تايم أوت...'; cd.textContent=''; nameEl.textContent=''; nameEl.style.background='transparent';
+    inner.textContent='🔒'; label.textContent='تايم أوت...';
+    cd.textContent=''; nameEl.textContent=''; nameEl.style.background='transparent';
   }
 
   if(effectiveState!=='pressed'&&answerCdTimer){ clearInterval(answerCdTimer); answerCdTimer=null; cd.textContent=''; }
@@ -1045,9 +1071,16 @@ function pressMyButton(){
   if(myTeam==='green'&&gameState.greenTimeoutUntil>now) return;
   if(myTeam==='orange'&&gameState.orangeTimeoutUntil>now) return;
 
-  // الحالات المسموحة: open أو hint أو تايم أوت للفريق الثاني (أنا حر)
-  const oppTimeoutState=(btnState==='timeout_green'&&myTeam==='orange')||(btnState==='timeout_orange'&&myTeam==='green');
-  if(btnState!=='open'&&btnState!=='hint'&&!oppTimeoutState) return;
+  // الحالات المسموح فيها بالضغط
+  const canPress = btnState==='open'
+    || btnState==='hint'  // hint = مقفل! الهوست هو اللي يفتح، مو اللاعب
+    || (btnState==='timeout_green'&&myTeam==='orange')
+    || (btnState==='timeout_orange'&&myTeam==='green');
+
+  // hint = مقفل — الهوست يفتح
+  if(btnState==='hint') return;
+
+  if(!canPress) return;
 
   // شخص ضغط بالفعل = مقفل
   if(gameState.buttonPressedBy&&gameState.buttonPressedBy!==myId) return;

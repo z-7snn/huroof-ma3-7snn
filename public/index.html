@@ -45,7 +45,7 @@ body.ar .tbtn{font-family:'Tajawal',sans-serif;}
 #teleport-portal{position:absolute;width:130px;height:130px;border-radius:50%;display:none;align-items:center;justify-content:center;transform:translate(-50%,-50%);z-index:5;pointer-events:none;}
 #teleport-portal.active{display:flex;animation:portalSpin 1s linear infinite;}
 @keyframes portalSpin{from{filter:hue-rotate(0deg);}to{filter:hue-rotate(360deg);}}
-.portal-ring{position:absolute;inset:0;border-radius:50%;border:5px solid transparent;background:conic-gradient(#7c3aed,#06b6d4,#10b981,#f59e0b,#ef4444,#7c3aed) border-box;-webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);-webkit-mask-composite:destination-out;mask-composite:exclude;animation:ringPulse .6s ease infinite alternate;}
+.portal-ring{position:absolute;inset:0;border-radius:50%;border:5px solid transparent;background:conic-gradient(#7c3aed,#06b6d4,#10b981,#f59e0b,#ef4444,#7c3aed) border-box;-webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);-webkit-mask-composite:destination-out;mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0);mask-composite:exclude;animation:ringPulse .6s ease infinite alternate;}
 @keyframes ringPulse{from{opacity:.7;transform:scale(1)}to{opacity:1;transform:scale(1.1)}}
 .portal-inner{width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,.7),rgba(6,182,212,.4),transparent);animation:portalInner 1s ease infinite alternate;}
 @keyframes portalInner{from{transform:scale(.8);opacity:.5}to{transform:scale(1.1);opacity:1}}
