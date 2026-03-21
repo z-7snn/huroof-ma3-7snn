@@ -277,8 +277,13 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min
   background:radial-gradient(circle at 38% 32%,#94a3b8,#475569);
   box-shadow:0 4px 0 #1e293b;
 }
-.big-btn-wrap.timeout{
-  animation:timeoutShake .5s ease;
+.big-btn-wrap.timeout{animation:timeoutShake .5s ease;}
+
+/* محجوب — الخصم في تايم أوت */
+.big-btn-wrap.blocked .big-btn-inner{
+  background:radial-gradient(circle at 38% 32%,#f87171,#dc2626);
+  box-shadow:0 4px 0 #991b1b;
+  cursor:not-allowed;
 }
 @keyframes timeoutShake{
   0%,100%{transform:translateX(0) rotate(0);}
@@ -747,8 +752,9 @@ socket.on('buttonPressed',({playerId,playerName,team})=>{
 
 socket.on('judgeResult',({correct,playerName})=>{
   if(overlayTimer){ clearInterval(overlayTimer); overlayTimer=null; }
-  if(correct){ AudioEngine.playCorrect(); showJudgmentFlash('✅','صـح! 🎉',playerName,'var(--green)','rgba(240,253,244,.96)'); }
-  else { AudioEngine.playWrong(); showJudgmentFlash('❌','غلـط! ❌',playerName,'var(--red)','rgba(254,242,242,.96)'); }
+  // الزر يتغير لونه فقط — بدون شاشة كاملة
+  if(correct){ AudioEngine.playCorrect(); }
+  else { AudioEngine.playWrong(); }
 });
 
 socket.on('showMVP', (mvpData)=>{ showMVPOverlay(mvpData); });
@@ -757,14 +763,13 @@ socket.on('roundWin', data=>{
   AudioEngine.playWin(); showWinOverlay(winner);
 });
 socket.on('hintApproved',()=>{ AudioEngine.playHint(); });
-socket.on('questionExpired',()=>{ AudioEngine.playExpire(); showJudgmentFlash('⏰','انتهى الوقت!','','var(--red)','rgba(254,242,242,.96)'); });
+socket.on('questionExpired',()=>{ AudioEngine.playExpire(); });
 socket.on('questionCancelled',({answer})=>{
-  showJudgmentFlash('🚫','إلغاء السؤال'+(answer?'\nالجواب: '+answer:''),'','var(--red)','rgba(254,242,242,.96)');
+  // فقط صوت + الجواب يطلع صغير على الزر
+  AudioEngine.playExpire();
 });
 socket.on('xpGain',d=>{ setTimeout(()=>showXpPopup(d),900); });
-socket.on('showMVP', (mvpData)=>{ showMVPOverlay(mvpData); });
 socket.on('newRound',()=>{ closeWinOverlay(); hintVoted=false; cancelVoted=false; closeMVPOverlay(); });
-socket.on('showMVP',()=>{ revealMVP(); });
 socket.on('levelUp',d=>{ showLevelUpPopup({type:'level',level:d.level}); });
 socket.on('prestigeUp',d=>{ showLevelUpPopup({type:'prestige',prestige:d.prestige,badge:d.badge}); });
 socket.on('xpUpdate',d=>{ const el=document.getElementById('my-prestige-badge'); if(el) el.textContent=d.badge||''; });
@@ -889,9 +894,15 @@ function renderMyBigButton(state){
   const myInTimeoutOrange=myTeam==='orange'&&state.orangeTimeoutUntil>now;
   const myInTimeout=myInTimeoutGreen||myInTimeoutOrange;
 
+  // الفريق المنافس في تايم أوت
+  const oppTeam=myTeam==='green'?'orange':'green';
+  const oppInTimeout=(oppTeam==='green'&&state.greenTimeoutUntil>now)||(oppTeam==='orange'&&state.orangeTimeoutUntil>now);
+
   // الحالة الفعلية للزر
   let effectiveState=btnState;
   if(myInTimeout) effectiveState='timeout';
+  // إذا الخصم في تايم أوت وأنا ضغطت أو الهوست ما حكم بعد — أنا محجوب
+  else if(oppInTimeout && (btnState==='timeout_green'||btnState==='timeout_orange')) effectiveState='blocked';
 
   // تايم أوت — رمادي مغلق بس + عداد الخدوش
   if(effectiveState==='timeout'&&_lastBtnState!=='timeout'){
@@ -906,7 +917,7 @@ function renderMyBigButton(state){
 
   // تحديث class
   wrap.className='big-btn-wrap '+effectiveState;
-  wrap.classList.toggle('cant-press',effectiveState==='idle'||effectiveState==='timeout'||effectiveState==='correct'||effectiveState==='wrong');
+  wrap.classList.toggle('cant-press',effectiveState==='idle'||effectiveState==='timeout'||effectiveState==='blocked'||effectiveState==='correct'||effectiveState==='wrong');
 
   // الخدوش
   updateDamageOverlay(myTeam);
@@ -939,6 +950,8 @@ function renderMyBigButton(state){
     inner.textContent='❌'; label.textContent='إجابة خاطئة!'; cd.textContent=''; const pp=state.players[state.buttonPressedBy]; nameEl.textContent=pp?.name||'';
   } else if(effectiveState==='timeout'){
     inner.textContent='🔒'; label.textContent='تايم أوت...'; cd.textContent=''; nameEl.textContent=''; nameEl.style.background='transparent';
+  } else if(effectiveState==='blocked'){
+    inner.textContent='❌'; label.textContent='دور فريقك خلص'; cd.textContent=''; nameEl.textContent=''; nameEl.style.background='transparent';
   }
 
   if(effectiveState!=='pressed'&&answerCdTimer){ clearInterval(answerCdTimer); answerCdTimer=null; cd.textContent=''; }
@@ -1010,6 +1023,10 @@ function pressMyButton(){
   const now=Date.now();
   if(myTeam==='green'&&gameState.greenTimeoutUntil>now) return;
   if(myTeam==='orange'&&gameState.orangeTimeoutUntil>now) return;
+  // إذا الخصم في تايم أوت والحالة timeout — أنا محجوب
+  const oppTeam=myTeam==='green'?'orange':'green';
+  const oppInTimeout=(oppTeam==='green'&&gameState.greenTimeoutUntil>now)||(oppTeam==='orange'&&gameState.orangeTimeoutUntil>now);
+  if(oppInTimeout&&(btnState==='timeout_green'||btnState==='timeout_orange')) return;
   AudioEngine.resume();
 
   // اهتزاز
