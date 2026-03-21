@@ -894,15 +894,9 @@ function renderMyBigButton(state){
   const myInTimeoutOrange=myTeam==='orange'&&state.orangeTimeoutUntil>now;
   const myInTimeout=myInTimeoutGreen||myInTimeoutOrange;
 
-  // الفريق المنافس في تايم أوت
-  const oppTeam=myTeam==='green'?'orange':'green';
-  const oppInTimeout=(oppTeam==='green'&&state.greenTimeoutUntil>now)||(oppTeam==='orange'&&state.orangeTimeoutUntil>now);
-
-  // الحالة الفعلية للزر
+  // الحالة الفعلية — فقط الفريق اللي عنده تايم أوت يتوقف زره
   let effectiveState=btnState;
   if(myInTimeout) effectiveState='timeout';
-  // إذا الخصم في تايم أوت وأنا ضغطت أو الهوست ما حكم بعد — أنا محجوب
-  else if(oppInTimeout && (btnState==='timeout_green'||btnState==='timeout_orange')) effectiveState='blocked';
 
   // تايم أوت — رمادي مغلق بس + عداد الخدوش
   if(effectiveState==='timeout'&&_lastBtnState!=='timeout'){
@@ -917,7 +911,7 @@ function renderMyBigButton(state){
 
   // تحديث class
   wrap.className='big-btn-wrap '+effectiveState;
-  wrap.classList.toggle('cant-press',effectiveState==='idle'||effectiveState==='timeout'||effectiveState==='blocked'||effectiveState==='correct'||effectiveState==='wrong');
+  wrap.classList.toggle('cant-press',effectiveState==='idle'||effectiveState==='timeout'||effectiveState==='correct'||effectiveState==='wrong');
 
   // الخدوش
   updateDamageOverlay(myTeam);
@@ -950,8 +944,6 @@ function renderMyBigButton(state){
     inner.textContent='❌'; label.textContent='إجابة خاطئة!'; cd.textContent=''; const pp=state.players[state.buttonPressedBy]; nameEl.textContent=pp?.name||'';
   } else if(effectiveState==='timeout'){
     inner.textContent='🔒'; label.textContent='تايم أوت...'; cd.textContent=''; nameEl.textContent=''; nameEl.style.background='transparent';
-  } else if(effectiveState==='blocked'){
-    inner.textContent='❌'; label.textContent='دور فريقك خلص'; cd.textContent=''; nameEl.textContent=''; nameEl.style.background='transparent';
   }
 
   if(effectiveState!=='pressed'&&answerCdTimer){ clearInterval(answerCdTimer); answerCdTimer=null; cd.textContent=''; }
@@ -1023,10 +1015,6 @@ function pressMyButton(){
   const now=Date.now();
   if(myTeam==='green'&&gameState.greenTimeoutUntil>now) return;
   if(myTeam==='orange'&&gameState.orangeTimeoutUntil>now) return;
-  // إذا الخصم في تايم أوت والحالة timeout — أنا محجوب
-  const oppTeam=myTeam==='green'?'orange':'green';
-  const oppInTimeout=(oppTeam==='green'&&gameState.greenTimeoutUntil>now)||(oppTeam==='orange'&&gameState.orangeTimeoutUntil>now);
-  if(oppInTimeout&&(btnState==='timeout_green'||btnState==='timeout_orange')) return;
   AudioEngine.resume();
 
   // اهتزاز
