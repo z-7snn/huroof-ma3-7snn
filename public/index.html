@@ -405,24 +405,88 @@ function goToEscape(){
 }
 
 const btn=document.getElementById('escape-btn');
-let btnCaught=false, escapeEnabled=false;
-let audioCtx=null;
-let escapePhase=0; // 0=fake buttons, 1=chaos, 2=crash
-let chaosInterval=null, spellInterval=null, crashTimer=null;
-let chaosMoveInterval=null, slowdownInterval=null;
+let btnCaught=false;
 let mouseX=window.innerWidth/2, mouseY=window.innerHeight/2;
-let fakeBtns=[], correctFakeId=null, fakeChangeInterval=null;
-let chaosStartTime=0, spellDensity=0;
-let correctFakeIdx=0;
+let escapeMoveInterval=null, escapeAutoTimer=null;
 
 document.addEventListener('mousemove',e=>{ mouseX=e.clientX; mouseY=e.clientY; });
 
-setTimeout(()=>{ escapeEnabled=true; startPhase1(); }, 900);
+setTimeout(()=>{ startEscapeRun(); }, 900);
 
-// ══════════════════════════════════════
-// المرحلة 1 — أزرار مزيفة (10 ثواني)
-// ══════════════════════════════════════
-function startPhase1(){
+function startEscapeRun(){
+  btn.style.left=(window.innerWidth/2)+'px';
+  btn.style.top=(window.innerHeight/2)+'px';
+  btn.style.opacity='1';
+  btn.style.pointerEvents='auto';
+  btn.onclick=catchBtn;
+  btn.addEventListener('touchstart',(e)=>{ e.preventDefault(); catchBtn(); },{passive:false});
+
+  // الزر يهرب من الماوس كل 30ms
+  escapeMoveInterval=setInterval(()=>{
+    if(btnCaught) return;
+    const vw=window.innerWidth, vh=window.innerHeight, m=70;
+    const bx=parseFloat(btn.style.left)||vw/2;
+    const by=parseFloat(btn.style.top)||vh/2;
+    const dist=Math.hypot(mouseX-bx, mouseY-by);
+    if(dist<200){
+      const dx=bx-mouseX, dy=by-mouseY;
+      const angle=Math.atan2(dy,dx);
+      let nx=bx+Math.cos(angle)*(250+Math.random()*150);
+      let ny=by+Math.sin(angle)*(250+Math.random()*150);
+      nx=Math.max(m,Math.min(vw-m,nx));
+      ny=Math.max(m,Math.min(vh-m,ny));
+      btn.style.left=nx+'px'; btn.style.top=ny+'px';
+    }
+  },30);
+
+  // بعد دقيقة يدخل وحده
+  escapeAutoTimer=setTimeout(()=>{
+    if(btnCaught) return;
+    btnCaught=true;
+    clearInterval(escapeMoveInterval);
+    btn.textContent='😅';
+    btn.style.transition='all .3s';
+    setTimeout(goToTTY, 800);
+  }, 60000);
+}
+
+function catchBtn(){
+  if(btnCaught) return;
+  btnCaught=true;
+  clearInterval(escapeMoveInterval);
+  if(escapeAutoTimer) clearTimeout(escapeAutoTimer);
+  btn.textContent=t().escapeCaught||'Got it!';
+  btn.style.background='linear-gradient(145deg,#f97316,#ea580c)';
+  btn.style.transition='all .3s';
+  setTimeout(goToTTY, 500);
+}
+
+// ── stub القديم ──
+function startPhase1(){}
+function startPhase2fromBelow(){}
+function startChaos(){}
+function startChaosMove(){}
+function startCrash(){}
+function spawnSpell(){}
+function applySlowdown(){}
+function elapsed(){ return 0; }
+function highlightCorrect(){}
+function onFakeBtnClick(){}
+function removeFakeBtns(){}
+function startButtonWatcher(){}
+function moveButtonAway(){}
+function startGlitch(){}
+function startTeleportPhase(){}
+function doTeleport(){}
+function preClickZoneHit(){}
+function showHelperArrows(){}
+function clearArrows(){}
+function startBeepSystem(){}
+function stopBeepSystem(){}
+function clearHelpers(){}
+function trackMouse(){}
+
+function goToTTY(){
   const screen=document.getElementById('s-escape');
   const vw=window.innerWidth, vh=window.innerHeight, m=70;
   const COUNT=Math.floor(60+Math.random()*40); // 60-100 زر
@@ -469,260 +533,6 @@ function startPhase1(){
     startPhase2fromBelow();
   }, 10000);
 }
-
-function highlightCorrect(){
-  fakeBtns.forEach((fb,i)=>{
-    if(i===correctFakeIdx){
-      fb.style.background='linear-gradient(145deg,var(--green),#22c55e)';
-      fb.style.boxShadow='0 5px 0 var(--green-dark),0 8px 18px rgba(22,163,74,.3)';
-    } else {
-      // الغلط لونه مختلف قليلاً — مو واضح الفرق 😈
-      const r=Math.random();
-      if(r<0.3) fb.style.background='linear-gradient(145deg,#1d9c3e,#16a34a)';
-      else if(r<0.6) fb.style.background='linear-gradient(145deg,#15803d,#22c55e)';
-      else fb.style.background='linear-gradient(145deg,#166534,#16a34a)';
-    }
-  });
-}
-
-function onFakeBtnClick(idx){
-  if(btnCaught) return;
-  if(idx===correctFakeIdx){
-    // ضغط الصح! انتقل للمرحلة 2
-    clearInterval(fakeChangeInterval);
-    removeFakeBtns();
-    startPhase2fromBelow();
-  } else {
-    // غلط — اهتزاز بسيط وتأثير أحمر
-    const fb=fakeBtns[idx];
-    if(fb){ fb.style.background='linear-gradient(145deg,#dc2626,#ef4444)'; fb.style.transform='translate(-50%,-50%) scale(.85)'; setTimeout(()=>{ if(fb){ fb.style.background=''; fb.style.transform='translate(-50%,-50%) scale(1)'; highlightCorrect(); } },300); }
-    if(navigator.vibrate) navigator.vibrate(80);
-  }
-}
-
-function removeFakeBtns(){
-  fakeBtns.forEach(fb=>{ fb.style.animation='fakeBtnOut .3s ease forwards'; setTimeout(()=>fb.remove(),300); });
-  fakeBtns=[];
-}
-
-// ══════════════════════════════════════
-// المرحلة 2 — الزر يطلع من تحت + فوضى
-// ══════════════════════════════════════
-function startPhase2fromBelow(){
-  const vw=window.innerWidth, vh=window.innerHeight;
-  // الزر يطلع من أسفل الشاشة
-  btn.style.left=(vw/2)+'px';
-  btn.style.top=(vh+80)+'px';
-  btn.style.opacity='1';
-  btn.style.transform='translate(-50%,-50%) scale(1)';
-  btn.style.transition='top .8s cubic-bezier(.34,1.3,.64,1)';
-  btn.style.pointerEvents='auto';
-  btn.onclick=catchBtn;
-  btn.ontouchstart=null;
-  btn.addEventListener('touchstart',(e)=>{ e.preventDefault(); catchBtn(); },{passive:false,once:true});
-
-  setTimeout(()=>{
-    btn.style.top=(vh/2)+'px';
-    setTimeout(()=>{
-      btn.style.transition='none';
-      startChaos();
-    }, 900);
-  }, 100);
-
-  chaosStartTime=Date.now();
-}
-
-// ══════════════════════════════════════
-// الفوضى
-// ══════════════════════════════════════
-const SPELLS=[
-  'ᚠᚢᚦᚨᚱᚲ','𒀭𒂗𒍪','ꁩꂁꀘ','ꄤꁱꀎ',
-  'اعوذ بالله','يا قهار','السحر يرتد',
-  'بسم الله','لا إله إلا الله',
-  'ⰋⰎⰎⰏⰋⰐ','ᏒᎧᏝᏝ','ꋊꀘꁱ',
-  '𖤐𖤐𖤐','⛧⛥⸸','҉҉҉',
-  'الزر لك','لن تصيده','يهرب منك',
-  'تعبت؟','استسلم','مستحيل',
-  'ᎥᏁᏉᎥᏚᎥᏰᏞᎬ','ꀘꁱꁹꂅ',
-  'الوقت ينفد','اخرج','ارجع',
-];
-
-function startChaos(){
-  const screen=document.getElementById('s-escape');
-  screen.classList.add('glitch');
-
-  // الزر يهرب من الماوس
-  startChaosMove();
-
-  // الطلاسم تملأ الشاشة تدريجياً
-  spellInterval=setInterval(()=>{
-    if(btnCaught) return;
-    const elapsed=(Date.now()-chaosStartTime)/1000;
-    // كلما مر وقت أكثر كلما طلعت كتابات أكثر
-    const density=Math.min(1, elapsed/60);
-    const count=Math.floor(1+density*8);
-    for(let i=0;i<count;i++) spawnSpell(density);
-    // تبطئ الصوت تدريجياً
-    if(elapsed>30) applySlowdown(elapsed);
-  }, Math.max(200, 2000-elapsed()*30));
-
-  // بعد دقيقتين — تعليق كامل وضغط وحده
-  crashTimer=setTimeout(startCrash, 120000);
-}
-
-function elapsed(){ return (Date.now()-chaosStartTime)/1000; }
-
-function startChaosMove(){
-  if(chaosMoveInterval) clearInterval(chaosMoveInterval);
-  chaosMoveInterval=setInterval(()=>{
-    if(btnCaught) return;
-    const vw=window.innerWidth, vh=window.innerHeight, m=80;
-    const bx=parseFloat(btn.style.left)||vw/2;
-    const by=parseFloat(btn.style.top)||vh/2;
-    const dist=Math.hypot(mouseX-bx, mouseY-by);
-    const e=elapsed();
-    // المسافة الخطرة تزيد مع الوقت
-    const danger=150+e*3;
-
-    if(dist<danger){
-      const dx=bx-mouseX, dy=by-mouseY;
-      const angle=Math.atan2(dy,dx);
-      const speed=200+e*8;
-      let nx=bx+Math.cos(angle)*speed+(Math.random()-.5)*100;
-      let ny=by+Math.sin(angle)*speed+(Math.random()-.5)*100;
-      nx=Math.max(m,Math.min(vw-m,nx));
-      ny=Math.max(m,Math.min(vh-m,ny));
-      btn.style.left=nx+'px'; btn.style.top=ny+'px';
-      // بعد 30 ثانية يصير أسرع ويقفز ثلاث مرات
-      if(e>30){
-        setTimeout(()=>{
-          if(btnCaught) return;
-          btn.style.left=(m+Math.random()*(vw-m*2))+'px';
-          btn.style.top=(m+Math.random()*(vh-m*2))+'px';
-        }, 40);
-        if(e>60){
-          setTimeout(()=>{
-            if(btnCaught) return;
-            btn.style.left=(m+Math.random()*(vw-m*2))+'px';
-            btn.style.top=(m+Math.random()*(vh-m*2))+'px';
-          }, 80);
-        }
-      }
-    }
-  }, 30);
-}
-
-function spawnSpell(density){
-  const vw=window.innerWidth, vh=window.innerHeight;
-  const el=document.createElement('div');
-  el.className='spell-text';
-  el.textContent=SPELLS[Math.floor(Math.random()*SPELLS.length)];
-  const size=0.6+density*1.4;
-  const opacity=0.15+density*0.65;
-  const dur=3+Math.random()*4;
-  el.style.cssText=`
-    position:absolute;
-    left:${Math.random()*vw}px;
-    top:${Math.random()*vh}px;
-    font-size:${size}rem;
-    color:${Math.random()>0.5?'#ef4444':'#7c3aed'};
-    opacity:${opacity};
-    pointer-events:none;
-    z-index:2;
-    font-weight:900;
-    text-shadow:0 0 8px currentColor;
-    animation:spellFade ${dur}s ease forwards;
-    transform:rotate(${(Math.random()-.5)*30}deg);
-  `;
-  document.getElementById('s-escape').appendChild(el);
-  setTimeout(()=>el.remove(), dur*1000);
-}
-
-// تبطيء الصوت
-function applySlowdown(e){
-  if(!audioCtx) return;
-  // تبطيء الـ AudioContext
-  const rate=Math.max(0.3, 1-(e-30)/90);
-  try{ audioCtx.playbackRate=rate; }catch(_){}
-}
-
-// ══════════════════════════════════════
-// المرحلة 3 — تعليق كامل
-// ══════════════════════════════════════
-function startCrash(){
-  if(btnCaught) return;
-  const screen=document.getElementById('s-escape');
-
-  // أوقف الفوضى العادية
-  clearInterval(chaosMoveInterval);
-  clearInterval(spellInterval);
-
-  // الشاشة تتجمد
-  screen.style.filter='saturate(0) brightness(.7)';
-  screen.style.transition='filter .5s';
-
-  // أضف تأثير التعليق
-  screen.classList.add('crashed');
-
-  // طلع رسالة "Not Responding"
-  const crashMsg=document.createElement('div');
-  crashMsg.style.cssText=`position:fixed;top:20px;left:50%;transform:translateX(-50%);
-    background:#1a1a1a;color:#fff;padding:8px 20px;border-radius:6px;font-size:.8rem;
-    font-family:monospace;z-index:9999;border:1px solid #444;`;
-  crashMsg.textContent='⚠️ escape-game.exe (Not Responding)';
-  document.body.appendChild(crashMsg);
-
-  // الزر "يخرب" ويضغط وحده بعد 3 ثواني
-  setTimeout(()=>{
-    btn.style.background='linear-gradient(145deg,#94a3b8,#64748b)';
-    btn.style.boxShadow='none';
-    btn.textContent='...';
-    btn.style.animation='btnCrash .3s steps(3) infinite';
-
-    // بعد ثانية يضغط وحده
-    setTimeout(()=>{
-      if(btnCaught) return;
-      btnCaught=true;
-      crashMsg.remove();
-      screen.style.filter='';
-      screen.classList.remove('crashed','glitch');
-      btn.textContent='💀';
-      btn.style.background='linear-gradient(145deg,#dc2626,#991b1b)';
-      btn.style.animation='none';
-      // يدخل بعد ثانيتين
-      setTimeout(goToTTY, 2000);
-    }, 1500);
-  }, 3000);
-}
-
-function catchBtn(){
-  if(btnCaught) return;
-  btnCaught=true;
-  clearInterval(chaosMoveInterval);
-  clearInterval(spellInterval);
-  if(crashTimer) clearTimeout(crashTimer);
-  document.getElementById('s-escape').classList.remove('glitch','crashed');
-  document.querySelectorAll('.spell-text').forEach(e=>e.remove());
-
-  btn.textContent=t().escapeCaught||'Got it!';
-  btn.style.background='linear-gradient(145deg,#f97316,#ea580c)';
-  btn.style.transition='all .3s';
-  setTimeout(goToTTY, 500);
-}
-
-// ── بدون الدوال القديمة الغير مستخدمة ──
-function startButtonWatcher(){}
-function moveButtonAway(){}
-function startGlitch(){}
-function startTeleportPhase(){}
-function doTeleport(){}
-function preClickZoneHit(){}
-function showHelperArrows(){}
-function clearArrows(){}
-function startBeepSystem(){}
-function stopBeepSystem(){}
-function clearHelpers(){}
-function trackMouse(){}
 
 function goToTTY(){
   const s1=document.getElementById('s-escape');
