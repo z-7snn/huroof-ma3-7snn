@@ -896,10 +896,16 @@ function renderMyBigButton(state){
 
   // الحالة الفعلية — فقط الفريق اللي عنده تايم أوت يتوقف زره
   let effectiveState=btnState;
-  if(myInTimeout) effectiveState='timeout';
-  // إذا شخص ضغط وأنا مو هو — زري يصير رمادي مغلق
-  else if(btnState==='pressed' && state.buttonPressedBy && state.buttonPressedBy!==myId){
-    effectiveState='idle';
+  const presserIsMe = state.buttonPressedBy===myId;
+
+  if(myInTimeout){
+    effectiveState='timeout';
+  } else if(btnState==='pressed' && state.buttonPressedBy && !presserIsMe){
+    // شخص ثاني ضغط — أنا أنتظر
+    effectiveState='waiting';
+  } else if((btnState==='wrong'||btnState==='correct') && !presserIsMe){
+    // wrong/correct بس اللي ضغط يشوفها، الباقين يشوفون open
+    effectiveState='open';
   }
 
   // تايم أوت — رمادي مغلق بس + عداد الخدوش
