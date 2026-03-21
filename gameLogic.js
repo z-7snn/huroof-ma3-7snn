@@ -292,8 +292,13 @@ function registerSocketEvents(io, db, playersDB, saveDB, getPlayerBadge, generat
     // ── اللاعب يضغط الزر ──
     socket.on('pressButton', () => {
       if(!gameState.players[socket.id])return;
-      if(gameState.btnState!=='open')return;
       const player=gameState.players[socket.id], team=player.team, now=Date.now();
+      // السماح بالضغط لما الزر open أو لما الفريق الثاني في تايم أوت
+      const oppTimeoutAllowed =
+        (gameState.btnState==='timeout_green'  && team==='orange') ||
+        (gameState.btnState==='timeout_orange' && team==='green');
+      if(gameState.btnState!=='open' && !oppTimeoutAllowed) return;
+      // فريقي في تايم أوت = مقفل
       if(team==='green'&&gameState.greenTimeoutUntil>now)return;
       if(team==='orange'&&gameState.orangeTimeoutUntil>now)return;
       // كل ضغطة تنقص نقطة MVP
