@@ -656,27 +656,12 @@ function showIntro(){
 
 socket.on('buttonPressed',({playerId,playerName,team})=>{
   AudioEngine.playButtonPress();
-  // اهتزاز الموبايل
   if(navigator.vibrate) navigator.vibrate([30,10,20]);
-  // أوفرلاي
-  if(overlayTimer){ clearInterval(overlayTimer); overlayTimer=null; }
-  const ov=document.getElementById('overlay');
-  const nameEl=document.getElementById('ov-name'), cdEl=document.getElementById('ov-cd');
-  ov.style.background=team==='green'?'rgba(240,253,244,.96)':'rgba(255,247,237,.96)';
-  nameEl.textContent=playerName; nameEl.style.color=team==='green'?'var(--green)':'var(--orange)';
-  cdEl.style.color=team==='green'?'var(--green)':'var(--orange)';
-  ov.classList.add('active');
-  let n=5; cdEl.textContent=n;
-  overlayTimer=setInterval(()=>{
-    n--;
-    if(n<=0){ clearInterval(overlayTimer); overlayTimer=null; cdEl.textContent='⏰'; setTimeout(()=>ov.classList.remove('active'),1800); }
-    else { AudioEngine.playTick(); cdEl.textContent=n; }
-  },1000);
+  // بدون أوفرلاي — العداد يظهر على الزر مباشرة
 });
 
 socket.on('judgeResult',({correct,playerName})=>{
   if(overlayTimer){ clearInterval(overlayTimer); overlayTimer=null; }
-  document.getElementById('overlay').classList.remove('active');
   if(correct){ AudioEngine.playCorrect(); showJudgmentFlash('✅','صـح! 🎉',playerName,'var(--green)','rgba(240,253,244,.96)'); }
   else { AudioEngine.playWrong(); showJudgmentFlash('❌','غلـط! ❌',playerName,'var(--red)','rgba(254,242,242,.96)'); }
 });
@@ -761,17 +746,19 @@ function renderGame(state){
   applyAudioState(state);
 }
 
-// ── اللاعبون الصغار ──
+// ── اللاعبون الصغار (اللاعبين الثانيين بس، بدون نفسي) ──
 function renderAllPlayersMini(state){
   const container=document.getElementById('all-players-row');
   const btnState=state.btnState||'idle';
   const now=Date.now();
-  const players=Object.entries(state.players).filter(([,p])=>p.team==='green'||p.team==='orange');
+  // بدون نفسي — أنا عندي الزر الكبير
+  const players=Object.entries(state.players).filter(([id,p])=>id!==myId&&(p.team==='green'||p.team==='orange'));
+
+  if(!players.length){ container.innerHTML=''; return; }
 
   container.innerHTML=players.map(([id,p])=>{
     const isPressed=state.buttonPressedBy===id;
     const inTimeout=(p.team==='green'&&state.greenTimeoutUntil>now)||(p.team==='orange'&&state.orangeTimeoutUntil>now);
-    const isMe=id===myId;
 
     let btnClass='';
     if(btnState==='correct'&&isPressed) btnClass='correct';
@@ -789,7 +776,7 @@ function renderAllPlayersMini(state){
       <div class="mini-btn-wrap" style="border-color:${p.team==='green'?'#16a34a':'#ea580c'}">
         <div class="mini-btn-inner ${btnClass}">${icon}</div>
       </div>
-      <div class="mini-player-name" style="color:${nameColor}">${p.name}${isMe?' ✦':''}</div>
+      <div class="mini-player-name" style="color:${nameColor}">${p.name}</div>
     </div>`;
   }).join('');
 }
@@ -816,12 +803,9 @@ function renderMyBigButton(state){
   let effectiveState=btnState;
   if(myInTimeout) effectiveState='timeout';
 
-  // تشغيل أنيميشن التايم أوت لما يتغير
+  // تايم أوت — رمادي مغلق بس + عداد الخدوش
   if(effectiveState==='timeout'&&_lastBtnState!=='timeout'){
-    triggerExplosion(wrap,inner);
-    // اهتزاز قوي
-    if(navigator.vibrate) navigator.vibrate([100,50,100,50,150]);
-    // زيادة عداد الضرر
+    if(navigator.vibrate) navigator.vibrate([80,40,80]);
     teamTimeoutCount[myTeam]=(teamTimeoutCount[myTeam]||0)+1;
   }
   // تجميع الزر لما يرجع
@@ -864,7 +848,7 @@ function renderMyBigButton(state){
   } else if(effectiveState==='wrong'){
     inner.textContent='❌'; label.textContent='إجابة خاطئة!'; cd.textContent=''; const pp=state.players[state.buttonPressedBy]; nameEl.textContent=pp?.name||'';
   } else if(effectiveState==='timeout'){
-    inner.textContent='💥'; label.textContent='تايم أوت 10 ثواني!'; cd.textContent=''; nameEl.textContent=''; nameEl.style.background='var(--red-light)'; nameEl.style.color='var(--red)';
+    inner.textContent='🔒'; label.textContent='تايم أوت...'; cd.textContent=''; nameEl.textContent=''; nameEl.style.background='transparent';
   }
 
   if(effectiveState!=='pressed'&&answerCdTimer){ clearInterval(answerCdTimer); answerCdTimer=null; cd.textContent=''; }
