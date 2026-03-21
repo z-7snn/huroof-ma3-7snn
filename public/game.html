@@ -894,17 +894,24 @@ function renderMyBigButton(state){
   const myInTimeoutOrange=myTeam==='orange'&&state.orangeTimeoutUntil>now;
   const myInTimeout=myInTimeoutGreen||myInTimeoutOrange;
 
-  // الحالة الفعلية — فقط الفريق اللي عنده تايم أوت يتوقف زره
+  // الحالة الفعلية
   let effectiveState=btnState;
   const presserIsMe = state.buttonPressedBy===myId;
 
+  // فريقي هو اللي عنده تايم أوت = زري مغلق
   if(myInTimeout){
     effectiveState='timeout';
+  }
+  // الـ btnState هو timeout_green أو timeout_orange
+  // الفريق اللي في تايم أوت = مغلق، الفريق الثاني = مفتوح
+  else if(btnState==='timeout_green'){
+    effectiveState = myTeam==='green' ? 'timeout' : 'open';
+  } else if(btnState==='timeout_orange'){
+    effectiveState = myTeam==='orange' ? 'timeout' : 'open';
   } else if(btnState==='pressed' && state.buttonPressedBy && !presserIsMe){
-    // شخص ثاني ضغط — أنا أنتظر
+    // أي شخص ضغط — الكل ينتظر غير اللي ضغط
     effectiveState='waiting';
   } else if((btnState==='wrong'||btnState==='correct') && !presserIsMe){
-    // wrong/correct بس اللي ضغط يشوفها، الباقين يشوفون open
     effectiveState='open';
   }
 
@@ -1029,11 +1036,11 @@ function pressMyButton(){
   if(!gameState) return;
   const btnState=gameState.btnState||'idle';
   if(btnState!=='open'&&btnState!=='hint') return;
-  // إذا شخص ثاني ضغط بالفعل
-  if(btnState==='pressed'&&gameState.buttonPressedBy&&gameState.buttonPressedBy!==myId) return;
   const now=Date.now();
   if(myTeam==='green'&&gameState.greenTimeoutUntil>now) return;
   if(myTeam==='orange'&&gameState.orangeTimeoutUntil>now) return;
+  // إذا أي شخص ضغط بالفعل — الكل مقفل غيره
+  if(btnState==='pressed'&&gameState.buttonPressedBy&&gameState.buttonPressedBy!==myId) return;
   AudioEngine.resume();
 
   // اهتزاز
