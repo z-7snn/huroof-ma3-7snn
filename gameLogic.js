@@ -118,7 +118,9 @@ function sanitizeState() {
 
 function applyWrongAnswer(io, wrongTeam, broadcastState) {
   const now = Date.now();
-  if (!gameState.timeoutGiven[wrongTeam]) {
+  // تايم أوت بس لأول خطأ في الحرف كله — أي فريق
+  const anyTimeoutGiven = gameState.timeoutGiven['green'] || gameState.timeoutGiven['orange'];
+  if (!anyTimeoutGiven) {
     gameState.timeoutGiven[wrongTeam] = true;
     gameState.lastWrongTeam = wrongTeam;
     const until = now + TEAM_TIMEOUT_MS;
